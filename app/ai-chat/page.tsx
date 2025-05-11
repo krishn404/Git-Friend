@@ -549,7 +549,7 @@ export default function AIChat() {
           </div>
 
           {/* Fixed input at the bottom */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-background/80 backdrop-blur-xl border-t border-border shadow-lg">
+          <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-background/80 backdrop-blur-xl border-t border-border shadow-lg z-10">
             <div className="container max-w-4xl mx-auto px-4 md:px-0">
               <form onSubmit={handleSubmit} className="relative">
                 <Card
