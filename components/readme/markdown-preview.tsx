@@ -75,13 +75,26 @@ export function MarkdownPreview({ markdown, onCopy, onDownload, onNew, onRegener
           <div className="prose prose-sm max-w-none px-6 readme-preview">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
+              // Security: Disable raw HTML and dangerous features
+              disallowedElements={["script", "iframe", "object", "embed", "form", "input", "button"]}
+              unwrapDisallowed={false}
               components={{
-                img: ({ node, ...props }) => (
-                  <img {...props} className="max-w-full h-auto my-4" alt={props.alt || ""} />
-                ),
-                a: ({ node, ...props }) => (
-                  <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" />
-                ),
+                img: ({ node, ...props }) => {
+                  // Security: Block dangerous protocols (data:, javascript:, vbscript:)
+                  if (props.src && (props.src.startsWith("javascript:") || props.src.startsWith("data:") || props.src.startsWith("vbscript:"))) {
+                    return null
+                  }
+                  return <img {...props} className="max-w-full h-auto my-4" alt={props.alt || ""} />
+                },
+                a: ({ node, ...props }) => {
+                  // Security: Block dangerous protocols (javascript:, data:, vbscript:)
+                  if (props.href && (props.href.startsWith("javascript:") || props.href.startsWith("data:") || props.href.startsWith("vbscript:"))) {
+                    return <span className="text-blue-600">{props.children}</span>
+                  }
+                  return (
+                    <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" />
+                  )
+                },
                 h1: ({ node, ...props }) => (
                   <h1 {...props} className="text-3xl font-bold mt-8 mb-4 pb-2 border-b border-gray-200" />
                 ),

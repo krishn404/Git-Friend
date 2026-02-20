@@ -14,6 +14,20 @@ export type MarkdownProps = {
   components?: Partial<Components>
 }
 
+// Configure marked securely: disable raw HTML, header IDs, and other unsafe features
+marked.setOptions({
+  breaks: false,
+  gfm: true,
+  headerIds: false,
+  mangle: false,
+  pedantic: false,
+  sanitize: false, // We'll sanitize via react-markdown components instead
+  silent: false,
+  smartLists: false,
+  smartypants: false,
+  xhtml: false,
+})
+
 function parseMarkdownIntoBlocks(markdown: string): string[] {
   const tokens = marked.lexer(markdown)
   return tokens.map((token) => token.raw)
@@ -49,6 +63,26 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   pre: function PreComponent({ children }) {
     return <>{children}</>
   },
+  // Security: Sanitize links to prevent javascript: and data: URLs
+  a: function LinkComponent({ href, children, ...props }) {
+    // Block dangerous protocols
+    if (href && (href.startsWith("javascript:") || href.startsWith("data:") || href.startsWith("vbscript:"))) {
+      return <span {...props}>{children}</span>
+    }
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+        {children}
+      </a>
+    )
+  },
+  // Security: Sanitize images to prevent data: URLs and VBScript
+  img: function ImageComponent({ src, ...props }) {
+    // Block dangerous protocols
+    if (src && (src.startsWith("javascript:") || src.startsWith("data:") || src.startsWith("vbscript:"))) {
+      return null
+    }
+    return <img src={src} {...props} />
+  },
 }
 
 const MemoizedMarkdownBlock = memo(
@@ -60,7 +94,15 @@ const MemoizedMarkdownBlock = memo(
     components?: Partial<Components>
   }) {
     return (
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={components}
+        // Security: Disable raw HTML and dangerous features
+        disallowedElements={["script", "iframe", "object", "embed", "form", "input", "button"]}
+        unwrapDisallowed={false}
+        // Sanitize links to prevent javascript: and data: URLs
+        rehypePlugins={[]}
+      >
         {content}
       </ReactMarkdown>
     )

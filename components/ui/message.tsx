@@ -60,7 +60,33 @@ export function MessageContent({ markdown = false, children, className, ...props
     <div className={cn("px-4 py-3 rounded-2xl shadow-sm", className)} {...props}>
       {markdown ? (
         <div className="prose prose-sm max-w-none dark:prose-invert">
-          <ReactMarkdown>{children as string}</ReactMarkdown>
+          <ReactMarkdown
+            // Security: Disable raw HTML and dangerous features
+            disallowedElements={["script", "iframe", "object", "embed", "form", "input", "button"]}
+            unwrapDisallowed={false}
+            components={{
+              // Security: Sanitize links to prevent javascript: and data: URLs
+              a: ({ href, children, ...props }) => {
+                if (href && (href.startsWith("javascript:") || href.startsWith("data:") || href.startsWith("vbscript:"))) {
+                  return <span {...props}>{children}</span>
+                }
+                return (
+                  <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                    {children}
+                  </a>
+                )
+              },
+              // Security: Sanitize images to prevent data: URLs and VBScript
+              img: ({ src, ...props }) => {
+                if (src && (src.startsWith("javascript:") || src.startsWith("data:") || src.startsWith("vbscript:"))) {
+                  return null
+                }
+                return <img src={src} {...props} />
+              },
+            }}
+          >
+            {children as string}
+          </ReactMarkdown>
         </div>
       ) : (
         <div className="whitespace-pre-wrap">{children}</div>

@@ -395,19 +395,35 @@ export default function AIChat() {
                           {message.role === "assistant" ? (
                             <div className="prose prose-sm max-w-none dark:prose-invert">
                               <ReactMarkdown
+                                // Security: Disable raw HTML and dangerous features
+                                disallowedElements={["script", "iframe", "object", "embed", "form", "input", "button"]}
+                                unwrapDisallowed={false}
                                 components={{
-                                  a: ({ node, ...props }) => (
-                                    <Badge
-                                      variant="outline"
-                                      className="inline-flex items-center gap-1.5 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                                      onClick={() => window.open(props.href, '_blank')}
-                                    >
-                                      <span className="h-3 w-3 rounded-full flex items-center justify-center bg-primary/10">
-                                        <GitBranch className="h-2 w-2" />
-                                      </span>
-                                      {props.children}
-                                    </Badge>
-                                  ),
+                                  a: ({ node, ...props }) => {
+                                    // Security: Block dangerous protocols
+                                    if (props.href && (props.href.startsWith("javascript:") || props.href.startsWith("data:") || props.href.startsWith("vbscript:"))) {
+                                      return <span>{props.children}</span>
+                                    }
+                                    return (
+                                      <Badge
+                                        variant="outline"
+                                        className="inline-flex items-center gap-1.5 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                                        onClick={() => window.open(props.href, '_blank')}
+                                      >
+                                        <span className="h-3 w-3 rounded-full flex items-center justify-center bg-primary/10">
+                                          <GitBranch className="h-2 w-2" />
+                                        </span>
+                                        {props.children}
+                                      </Badge>
+                                    )
+                                  },
+                                  // Security: Sanitize images to prevent data: URLs and VBScript
+                                  img: ({ src, ...props }) => {
+                                    if (src && (src.startsWith("javascript:") || src.startsWith("data:") || src.startsWith("vbscript:"))) {
+                                      return null
+                                    }
+                                    return <img src={src} {...props} />
+                                  },
                                 }}
                               >
                                 {message.content}
@@ -511,19 +527,35 @@ export default function AIChat() {
                           {streamContent ? (
                             <div className="prose prose-sm max-w-none dark:prose-invert">
                               <ReactMarkdown
+                                // Security: Disable raw HTML and dangerous features
+                                disallowedElements={["script", "iframe", "object", "embed", "form", "input", "button"]}
+                                unwrapDisallowed={false}
                                 components={{
-                                  a: ({ node, ...props }) => (
-                                    <Badge
-                                      variant="outline"
-                                      className="inline-flex items-center gap-1.5 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                                      onClick={() => window.open(props.href, '_blank')}
-                                    >
-                                      <span className="h-3 w-3 rounded-full flex items-center justify-center bg-primary/10">
-                                        <GitBranch className="h-2 w-2" />
-                                      </span>
-                                      {props.children}
-                                    </Badge>
-                                  ),
+                                  a: ({ node, ...props }) => {
+                                    // Security: Block dangerous protocols
+                                    if (props.href && (props.href.startsWith("javascript:") || props.href.startsWith("data:") || props.href.startsWith("vbscript:"))) {
+                                      return <span>{props.children}</span>
+                                    }
+                                    return (
+                                      <Badge
+                                        variant="outline"
+                                        className="inline-flex items-center gap-1.5 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                                        onClick={() => window.open(props.href, '_blank')}
+                                      >
+                                        <span className="h-3 w-3 rounded-full flex items-center justify-center bg-primary/10">
+                                          <GitBranch className="h-2 w-2" />
+                                        </span>
+                                        {props.children}
+                                      </Badge>
+                                    )
+                                  },
+                                  // Security: Sanitize images to prevent data: URLs and VBScript
+                                  img: ({ src, ...props }) => {
+                                    if (src && (src.startsWith("javascript:") || src.startsWith("data:") || src.startsWith("vbscript:"))) {
+                                      return null
+                                    }
+                                    return <img src={src} {...props} />
+                                  },
                                 }}
                               >
                                 {streamContent}
