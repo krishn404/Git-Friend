@@ -1,14 +1,11 @@
 # Git-Friend <p align="center">
-  <a href="https://www.producthunt.com/posts/git-friend?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-git&#0045;friend" target="_blank">
-    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=966948&theme=light&t=1747547874485" alt="Git Friend - Make git simple again | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
-  </a>
-</p>
 
-<!-- <p align="center">
-  <a href="https://www.producthunt.com/posts/git-friend?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-git&#0045;friend" target="_blank">
-    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=966948&theme=light&t=1747547874485" alt="Git Friend - Make git simple again | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
-  </a>
-</p> -->
+  <br />
+<br />
+<a href="https://vercel.com/oss">
+  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
+</a>
+
 
 <p align="center">
   <img src="public/image.jpg" >
