@@ -1,12 +1,31 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Sun, Moon } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+/**
+ * Renders only after mount to avoid hydration mismatch when browser extensions
+ * (e.g. password managers) inject attributes like fdprocessedid into buttons.
+ */
 export function ThemeToggle() {
+  const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div
+        className="inline-flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground"
+        aria-hidden
+      />
+    )
+  }
 
   return (
     <TooltipProvider>
