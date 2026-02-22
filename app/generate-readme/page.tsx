@@ -18,7 +18,6 @@ import {
 import { Upload, Loader2 } from "lucide-react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
-import { UserAuthButton } from "@/components/auth/user-auth-button"
 import MarkdownPreview from "@/components/readme/markdown-preview"
 
 import type React from "react"
@@ -32,8 +31,6 @@ import {
   Check,
   FileText,
   BookOpen,
-  Sun,
-  Moon,
   Sparkles,
   Zap,
   Github,
@@ -42,7 +39,7 @@ import {
   Download,
 } from "lucide-react"
 import Link from "next/link"
-import { useTheme } from "next-themes"
+import { Navbar } from "@/components/ui/navbar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { motion } from "framer-motion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -71,7 +68,7 @@ export default function GenerateReadme() {
     created_at?: string
     updated_at?: string
   } | null>(null)
-  const { theme, setTheme } = useTheme()
+  // Navbar provides theme toggle and auth controls
   const [customRequirements, setCustomRequirements] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [hoverState, setHoverState] = useState({
@@ -321,80 +318,11 @@ export default function GenerateReadme() {
   return (
     <ProtectedRoute>
       {guestTimerBar}
-      <div className="flex min-h-screen flex-col bg-[hsl(var(--readme-bg))] text-[hsl(var(--readme-text))]">
-        <header className="sticky top-0 z-40 border-b border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-bg))/80] backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--readme-bg))/60]">
-          <div className="container flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Link href="/" className="flex items-center gap-2">
-                <GitBranch className="h-6 w-6" />
-                <span className="text-xl font-bold">Git Friend</span>
-              </Link>
-            </div>
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm font-medium hover:text-[hsl(var(--readme-primary))] transition-colors">
-                Home
-              </Link>
-              <Link
-                href="/ai-chat"
-                className="text-sm font-medium hover:text-[hsl(var(--readme-primary))] transition-colors"
-              >
-                AI Chat
-              </Link>
-              <Link
-                href="/generate-readme"
-                className="text-sm font-medium text-[hsl(var(--readme-primary))] transition-colors"
-              >
-                Generate Readme
-              </Link>
-              <Link
-                href="/git-mojis"
-                className="text-sm font-medium hover:text-[hsl(var(--readme-primary))] transition-colors"
-              >
-                Git Mojis
-              </Link>
-            </nav>
-            <div className="flex items-center gap-4">
-              {/* GitHub Connection Button */}
-              {isConnected ? (
-                <div className="flex items-center gap-2">
-                  <img src={userInfo?.avatar_url} alt="GitHub" className="h-6 w-6 rounded-full" />
-                  <span className="text-sm hidden md:inline">{userInfo?.login}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={disconnectGitHub}
-                    className="text-xs"
-                  >
-                    Disconnect
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={connectGitHub}
-                  className="flex items-center gap-2"
-                >
-                  <Github className="h-4 w-4" />
-                  Connect GitHub
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                aria-label="Toggle theme"
-              >
-                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              </Button>
-              <UserAuthButton />
-            </div>
-          </div>
-        </header>
+      <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors duration-300">
+        <Navbar />
 
         {/* Main content */}
-        <main className="flex-1 relative">
+        <main className="flex-1 relative pt-24">
           <div className="container max-w-6xl mx-auto py-12">
             <div className="flex justify-center mb-2">
               <div className="bg-[hsl(var(--readme-primary))/20] text-[hsl(var(--readme-primary))] px-4 py-1.5 rounded-full text-sm font-medium">
