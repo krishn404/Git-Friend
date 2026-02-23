@@ -1,24 +1,16 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import {
   ArrowUp,
-  Copy,
-  Check,
-  Mic,
   GitBranch,
   GitMerge,
   GitPullRequest,
   GitCommit,
-  Clock,
-  Zap,
-  GitGraph,
-  ThumbsUp,
-  ThumbsDown,
   Sparkles,
   CornerDownLeft,
+  Loader2,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -29,21 +21,15 @@ import { SuggestionCard } from "@/components/ui/suggestion-card"
 import Image from "next/image"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Navbar } from "@/components/ui/navbar"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { useMobile } from "@/hooks/use-mobile"
-import ReactMarkdown from "react-markdown"
+import { StreamdownMessage } from "@/components/ui/streamdown-message"
+import { ChatContainer } from "@/components/ui/chat-container"
+import { StreamCursor } from "@/components/ui/stream-cursor"
+import { useChatStream } from "@/hooks/use-chat-stream"
 
-
-type ChatMessage = {
-  role: "user" | "assistant"
-  content: string
-  id: string
-  timestamp: Date
-  feedback?: "like" | "dislike" | null
-}
 
 type SuggestionCardProps = {
   icon: React.ReactNode
@@ -55,6 +41,17 @@ type SuggestionCardProps = {
 }
 
 export default function AIChat() {
+  const {
+    messages,
+    isLoading,
+    streamContent,
+    addMessage,
+    appendToStreamContent,
+    completeStream,
+    clearMessages,
+    updateMessageFeedback,
+  } = useChatStream()
+
   const suggestionCards: SuggestionCardProps[] = [
     {
       icon: <GitBranch className="h-5 w-5" />,
@@ -90,206 +87,160 @@ export default function AIChat() {
     },
   ]
 
-  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [streamContent, setStreamContent] = useState("")
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const chatContainerRef = useRef<HTMLDivElement>(null)
   const [showWelcome, setShowWelcome] = useState(true)
-  const inputRef = useRef<HTMLInputElement>(null)
   const [filteredSuggestions, setFilteredSuggestions] = useState<SuggestionCardProps[]>(suggestionCards)
   const [isInputFocused, setIsInputFocused] = useState(false)
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   const { toast } = useToast()
   const isMobile = useMobile()
 
-  // Scroll to bottom when messages change
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, streamContent])
 
-  // Hide welcome screen when there are messages
+  // Toggle welcome screen
   useEffect(() => {
-    if (messages.length > 0) {
-      setShowWelcome(false)
-    } else {
-      setShowWelcome(true)
-    }
+    setShowWelcome(messages.length === 0)
   }, [messages])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim()) return
+  // Handle chat submission with streaming
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!input.trim()) return
 
-    const userMessage: ChatMessage = {
-      role: "user",
-      content: input,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setIsLoading(true)
-    setStreamContent("") // Clear any previous streaming content
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: input }],
-        }),
-      })
-
-      if (!response.ok) throw new Error("Failed to fetch response")
-
-      const reader = response.body?.getReader()
-      if (!reader) throw new Error("Response body is null")
-
-      let accumulatedContent = ""
-
-      const processStream = async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            const chunkText = new TextDecoder().decode(value)
-            const lines = chunkText.split("\n\n")
-
-            for (const line of lines) {
-              if (!line.trim() || !line.startsWith("data:")) continue
-
-              const data = line.replace("data:", "").trim()
-              if (data === "[DONE]") break
-
-              try {
-                const parsed = JSON.parse(data)
-                if (parsed.content) {
-                  accumulatedContent += parsed.content
-                  setStreamContent(accumulatedContent)
-                }
-              } catch (e) {
-                console.error("Error parsing JSON from stream:", e, data)
-              }
-            }
-          }
-
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: accumulatedContent,
-              id: Date.now().toString(),
-              timestamp: new Date(),
-              feedback: null,
-            },
-          ])
-
-          setIsLoading(false)
-        } catch (error) {
-          console.error("Error processing stream:", error)
-          setIsLoading(false)
-        }
+      const userMessage = {
+        id: Date.now().toString(),
+        role: "user" as const,
+        content: input,
+        timestamp: new Date(),
       }
 
-      processStream()
-    } catch (error) {
-      console.error("Error fetching response:", error)
-      setIsLoading(false)
-    }
-  }
+      const assistantMessageId = Date.now().toString() + "_ai"
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text)
-    setCopiedId(id)
-    toast({
-      title: "Copied to clipboard",
-      description: "The message has been copied to your clipboard.",
-      duration: 2000,
-    })
-    setTimeout(() => setCopiedId(null), 2000)
-  }
+      addMessage(userMessage)
+      addMessage({
+        id: assistantMessageId,
+        role: "assistant" as const,
+        content: "",
+        timestamp: new Date(),
+        isStreaming: true,
+      })
 
-  const handleFeedback = (id: string, type: "like" | "dislike") => {
-    setMessages((prev) =>
-      prev.map((message) => {
-        if (message.id === id) {
-          return {
-            ...message,
-            feedback: message.feedback === type ? null : type,
-          }
+      setInput("")
+
+      // Abort previous request if still in flight
+      abortControllerRef.current?.abort()
+      abortControllerRef.current = new AbortController()
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: userMessage.content }],
+          }),
+          signal: abortControllerRef.current.signal,
+        })
+
+        if (!response.ok) throw new Error("Failed to fetch response")
+        if (!response.body) throw new Error("No response body")
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+
+        // Token-by-token streaming
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value, { stream: true })
+          appendToStreamContent(chunk)
         }
-        return message
-      }),
-    )
 
-    toast({
-      title: type === "like" ? "Feedback: Helpful" : "Feedback: Not Helpful",
-      description: "Thank you for your feedback!",
-      duration: 2000,
-    })
-  }
+        completeStream()
+      } catch (error: any) {
+        if (error?.name === "AbortError") {
+          console.log("[v0] Stream interrupted by user")
+          return
+        }
+        console.error("[v0] Stream error:", error)
+        toast({
+          title: "Error",
+          description: "Failed to get response. Please try again.",
+          variant: "destructive",
+        })
+      }
+    },
+    [input, addMessage, appendToStreamContent, completeStream, toast],
+  )
 
-  const handleSuggestionClick = async (prompt: string) => {
+  const handleFeedback = useCallback(
+    (messageId: string, type: "like" | "dislike" | null) => {
+      updateMessageFeedback(messageId, type)
+      if (type) {
+        toast({
+          title: type === "like" ? "Helpful!" : "Thank you for the feedback",
+          duration: 1500,
+        })
+      }
+    },
+    [updateMessageFeedback, toast],
+  )
+
+  const handleSuggestionClick = useCallback((prompt: string) => {
     setInput(prompt)
-    if (inputRef.current) {
-      inputRef.current.focus()
-    }
-  }
+    inputRef.current?.focus()
+  }, [])
 
-  // Update suggestions based on input
+  // Filter suggestions based on input
   useEffect(() => {
     if (!input.trim()) {
       setFilteredSuggestions(suggestionCards)
       return
     }
 
-    const filtered = suggestionCards.filter((card) => {
-      const inputLower = input.toLowerCase()
-      return (
-        card.keywords.some((keyword) => keyword.toLowerCase().includes(inputLower)) ||
-        card.title.toLowerCase().includes(inputLower) ||
-        card.description.toLowerCase().includes(inputLower)
-      )
-    })
-
-    setFilteredSuggestions(filtered)
+    const inputLower = input.toLowerCase()
+    setFilteredSuggestions(
+      suggestionCards.filter(
+        (card) =>
+          card.keywords.some((keyword) => keyword.toLowerCase().includes(inputLower)) ||
+          card.title.toLowerCase().includes(inputLower) ||
+          card.description.toLowerCase().includes(inputLower),
+      ),
+    )
   }, [input])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value)
-    // Filtering is handled by the useEffect above
-  }
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault()
+        handleSubmit(e as unknown as React.FormEvent)
+      }
+    },
+    [handleSubmit],
+  )
 
-  // Format timestamp
-  const formatMessageTime = (date: Date) => {
-    return format(date, "h:mm a")
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit(e as unknown as React.FormEvent)
-    }
-  }
+  const formatMessageTime = (date: Date) => format(date, "h:mm a")
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors duration-300">
+      <div className="flex min-h-screen flex-col bg-background text-foreground">
         <Navbar />
-
         <main className="flex-1 flex flex-col relative pt-24">
-          {/* Chat messages area */}
+          {/* Messages Area */}
           <div
             ref={chatContainerRef}
             className={cn(
               "flex-1 overflow-y-auto pb-32 md:pb-40",
-              showWelcome ? "flex items-center justify-center" : "",
+              showWelcome && "flex items-center justify-center",
               "bg-background",
             )}
           >
@@ -355,222 +306,43 @@ export default function AIChat() {
               </div>
             ) : (
               <div className="container max-w-4xl mx-auto px-4 md:px-8 py-6">
-                <div className="space-y-6">
-                  {messages.map((message, index) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className={cn("group", message.role === "user" ? "flex justify-end" : "flex justify-start")}
-                    >
-                      <div
-                        className={cn(
-                          "max-w-[85%] md:max-w-[75%]",
-                          message.role === "user" ? "flex flex-col items-end" : "flex flex-col items-start",
-                        )}
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    !message.isStreaming && (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
                       >
-                        <div className="flex items-center mb-1 text-xs text-muted-foreground">
-                          {message.role === "user" ? (
-                            <>
-                              <Clock className="h-3 w-3 mr-1" />
-                              {formatMessageTime(message.timestamp)}
-                            </>
-                          ) : (
-                            <>
-                              <span className="font-medium mr-1">Git Friend</span> •{" "}
-                              {formatMessageTime(message.timestamp)}
-                            </>
-                          )}
-                        </div>
-
-                        <div
-                          className={cn(
-                            "px-4 py-3 rounded-2xl shadow-sm",
-                            message.role === "user"
-                              ? "bg-primary text-white rounded-tr-sm"
-                              : "bg-card border border-border rounded-tl-sm",
-                          )}
-                        >
-                          {message.role === "assistant" ? (
-                            <div className="prose prose-sm max-w-none dark:prose-invert">
-                              <ReactMarkdown
-                                // Security: Disable raw HTML and dangerous features
-                                disallowedElements={["script", "iframe", "object", "embed", "form", "input", "button"]}
-                                unwrapDisallowed={false}
-                                components={{
-                                  a: ({ node, ...props }) => {
-                                    // Security: Block dangerous protocols
-                                    if (props.href && (props.href.startsWith("javascript:") || props.href.startsWith("data:") || props.href.startsWith("vbscript:"))) {
-                                      return <span>{props.children}</span>
-                                    }
-                                    return (
-                                      <Badge
-                                        variant="outline"
-                                        className="inline-flex items-center gap-1.5 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                                        onClick={() => window.open(props.href, '_blank')}
-                                      >
-                                        <span className="h-3 w-3 rounded-full flex items-center justify-center bg-primary/10">
-                                          <GitBranch className="h-2 w-2" />
-                                        </span>
-                                        {props.children}
-                                      </Badge>
-                                    )
-                                  },
-                                  // Security: Sanitize images to prevent data: URLs and VBScript
-                                  img: ({ src, ...props }) => {
-                                    if (src && (src.startsWith("javascript:") || src.startsWith("data:") || src.startsWith("vbscript:"))) {
-                                      return null
-                                    }
-                                    return <img src={src} {...props} />
-                                  },
-                                }}
-                              >
-                                {message.content}
-                              </ReactMarkdown>
-                            </div>
-                          ) : (
-                            <div className="whitespace-pre-wrap">{message.content}</div>
-                          )}
-                        </div>
-
-                        {message.role === "assistant" && (
-                          <div className="flex justify-end mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="flex items-center gap-1">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
-                                      onClick={() => copyToClipboard(message.content, message.id)}
-                                    >
-                                      {copiedId === message.id ? (
-                                        <Check className="h-4 w-4 text-green-500" />
-                                      ) : (
-                                        <Copy className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Copy to clipboard</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className={cn(
-                                        "h-8 w-8 rounded-full",
-                                        message.feedback === "like"
-                                          ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                                          : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                                      )}
-                                      onClick={() => handleFeedback(message.id, "like")}
-                                    >
-                                      <ThumbsUp className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Helpful</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className={cn(
-                                        "h-8 w-8 rounded-full",
-                                        message.feedback === "dislike"
-                                                                                  ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                                          : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                                      )}
-                                      onClick={() => handleFeedback(message.id, "dislike")}
-                                    >
-                                      <ThumbsDown className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Not helpful</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
+                        <StreamdownMessage
+                          role={message.role}
+                          content={message.content}
+                          feedback={message.feedback}
+                          onFeedback={(feedback) => handleFeedback(message.id, feedback)}
+                        />
+                      </motion.div>
+                    )
                   ))}
 
-                  {/* Response Stream */}
+                  {/* Streaming Response */}
                   {isLoading && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex justify-start"
+                      transition={{ duration: 0.2 }}
                     >
-                      <div className="max-w-[85%] md:max-w-[75%] flex flex-col items-start">
-                        <div className="flex items-center mb-1 text-xs text-muted-foreground">
-                          <span className="font-medium mr-1">Git Friend</span> • {formatMessageTime(new Date())}
+                      <StreamdownMessage
+                        role="assistant"
+                        content={streamContent}
+                        isStreaming={true}
+                      />
+                      {!streamContent && (
+                        <div className="flex items-center gap-2 ml-4 mt-3 text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Generating response...</span>
                         </div>
-                        <div className="px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm bg-card border border-border">
-                          {streamContent ? (
-                            <div className="prose prose-sm max-w-none dark:prose-invert">
-                              <ReactMarkdown
-                                // Security: Disable raw HTML and dangerous features
-                                disallowedElements={["script", "iframe", "object", "embed", "form", "input", "button"]}
-                                unwrapDisallowed={false}
-                                components={{
-                                  a: ({ node, ...props }) => {
-                                    // Security: Block dangerous protocols
-                                    if (props.href && (props.href.startsWith("javascript:") || props.href.startsWith("data:") || props.href.startsWith("vbscript:"))) {
-                                      return <span>{props.children}</span>
-                                    }
-                                    return (
-                                      <Badge
-                                        variant="outline"
-                                        className="inline-flex items-center gap-1.5 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                                        onClick={() => window.open(props.href, '_blank')}
-                                      >
-                                        <span className="h-3 w-3 rounded-full flex items-center justify-center bg-primary/10">
-                                          <GitBranch className="h-2 w-2" />
-                                        </span>
-                                        {props.children}
-                                      </Badge>
-                                    )
-                                  },
-                                  // Security: Sanitize images to prevent data: URLs and VBScript
-                                  img: ({ src, ...props }) => {
-                                    if (src && (src.startsWith("javascript:") || src.startsWith("data:") || src.startsWith("vbscript:"))) {
-                                      return null
-                                    }
-                                    return <img src={src} {...props} />
-                                  },
-                                }}
-                              >
-                                {streamContent}
-                              </ReactMarkdown>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-                                <Zap className="h-3 w-3 text-primary" />
-                              </div>
-                              <span className="text-sm text-muted-foreground">AI is thinking...</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      )}
                     </motion.div>
                   )}
 
@@ -580,44 +352,43 @@ export default function AIChat() {
             )}
           </div>
 
-          {/* Fixed input at the bottom */}
+          {/* Input Area */}
           <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-background/80 backdrop-blur-xl border-t border-border shadow-lg z-10">
             <div className="container max-w-4xl mx-auto px-4 md:px-0">
               <form onSubmit={handleSubmit} className="relative">
                 <Card
                   className={cn(
                     "overflow-hidden transition-all duration-200",
-                    isInputFocused ? "ring-2 ring-primary/50" : "",
+                    isInputFocused && "ring-2 ring-primary/50",
                   )}
                 >
                   <CardContent className="p-0">
-                    <div className="relative">
-
+                    <div className="relative flex items-center">
                       <Input
                         ref={inputRef}
                         value={input}
-                        onChange={handleInputChange}
+                        onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         onFocus={() => setIsInputFocused(true)}
                         onBlur={() => setIsInputFocused(false)}
                         placeholder="Ask about Git or GitHub..."
-                        className="border-0 pl-16 pr-12 py-6 text-base focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
+                        className="border-0 pl-4 pr-14 py-4 text-base focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
                         disabled={isLoading}
                       />
-
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                        {input.trim() ? (
+                      <div className="absolute right-3 flex items-center gap-1">
+                        {input.trim() && (
                           <Button
                             type="submit"
                             size="icon"
-                            className="h-10 w-10 rounded-full bg-primary hover:bg-primary/90 transition-colors"
+                            className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90 transition-colors"
                             disabled={isLoading}
                           >
-                            <ArrowUp className="h-5 w-5 text-white" />
+                            {isLoading ? (
+                              <Loader2 className="h-4 w-4 text-white animate-spin" />
+                            ) : (
+                              <ArrowUp className="h-4 w-4 text-white" />
+                            )}
                           </Button>
-                        ) :(
-                          <>
-                          </>
                         )}
                       </div>
                     </div>

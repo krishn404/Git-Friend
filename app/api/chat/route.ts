@@ -83,10 +83,10 @@ ${repoContextBlock}`,
           for await (const chunk of completion) {
             const content = chunk.choices?.[0]?.delta?.content || ""
             if (content) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`))
+              // Stream raw text directly for Streamdown consumption
+              controller.enqueue(encoder.encode(content))
             }
           }
-          controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
         } catch (error) {
           console.error("gitf Stream processing error:", error)
@@ -97,7 +97,7 @@ ${repoContextBlock}`,
 
     return new Response(stream, {
       headers: {
-        "Content-Type": "text/event-stream",
+        "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
       },
