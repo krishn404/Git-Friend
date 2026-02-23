@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { Groq } from "groq-sdk"
 import { scanRepository, type ScannedFile, type RepoAnalysis } from "@/lib/github"
+import { SYSTEM_MESSAGE } from "@/lib/ai/system-prompts"
 
 // Initialize Groq
 const groq = new Groq({
@@ -38,22 +39,8 @@ export async function POST(req: Request) {
     }
 
     const systemMessage = {
-      role: "system" as const,
-      content: `You are GitFriend, an AI assistant specializing in Git and GitHub. Respond with accurate, actionable guidance and use markdown formatting.
-
-GREETING BEHAVIOR:
-- When greeted, be brief and vary your tone and suggestions.
-
-RESPONSE FORMAT:
-- Use proper markdown, fenced code blocks with language tags.
-- Use ✅, ⚠️, 🔍 sparingly for emphasis.
-
-EXPERTISE:
-- Git basics, branching, merges, conflicts, advanced ops, GitHub PR/Issues/Actions.
-
-STYLE:
-- Be direct, explain why, show pitfalls, include steps.
-${repoContextBlock}`,
+      ...SYSTEM_MESSAGE,
+      content: SYSTEM_MESSAGE.content + repoContextBlock,
     }
 
     // Start streaming completion

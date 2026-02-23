@@ -25,9 +25,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { useMobile } from "@/hooks/use-mobile"
-import { StreamdownMessage } from "@/components/ui/streamdown-message"
-import { ChatContainer } from "@/components/ui/chat-container"
-import { StreamCursor } from "@/components/ui/stream-cursor"
+import { StreamdownMessage, ChatContainer, StreamCursor } from "@/components/ai-chat"
 import { useChatStream } from "@/hooks/use-chat-stream"
 
 
