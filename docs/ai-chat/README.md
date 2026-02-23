@@ -1,6 +1,6 @@
 # AI Chat Interface
 
-Production-grade Streamdown-native chat interface optimized for long-running streamed responses, tool calls, and rich content rendering.
+Production-grade chat interface optimized for long-running streamed responses with token-by-token rendering, rich markdown support, and feedback systems.
 
 ## Architecture
 
@@ -35,9 +35,9 @@ docs/ai-chat/
 
 ### Streaming-First Architecture
 - Token-by-token streaming with partial rendering
-- Streamdown as sole rendering layer
-- No custom markdown parsing overhead
-- Raw text streaming from API
+- ReactMarkdown for markdown rendering with Tailwind styling
+- Minimal rendering overhead with efficient partial updates
+- Raw text streaming from API (text/plain)
 
 ### Message Types
 - User messages with timestamp
@@ -48,7 +48,7 @@ docs/ai-chat/
 ### UI Components
 
 #### StreamdownMessage
-Renders assistant or user messages with Streamdown-native formatting.
+Renders assistant or user messages with ReactMarkdown-based formatting and action buttons.
 
 ```tsx
 <StreamdownMessage

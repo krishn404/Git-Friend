@@ -274,6 +274,47 @@ When stream ends:
    ├─ ... (continues until stream ends)
    │
    └─ Complete
+      ├─ Pass full content to ReactMarkdown
+      ├─ Parse markdown to HTML
+      └─ Render with Tailwind styling, syntax highlighting, etc.
+```
+
+## ReactMarkdown Integration
+
+```
+Raw Markdown Text Stream
+    ↓
+ReactMarkdown Receives Text
+    ↓
+ReactMarkdown Processes:
+  ├─ Code blocks → formatted with Tailwind
+  ├─ Tables → formatted table structure
+  ├─ Lists → proper list styling
+  ├─ Bold/italic → semantic tags
+  ├─ Links → clickable anchors
+  ├─ Inline code → styled code spans
+  └─ Headings → semantic heading tags
+    ↓
+ReactMarkdown Outputs: HTML
+    ↓
+Browser Renders: Pretty Formatted Content with Tailwind Styling
+```
+┌─ User Message
+│  └─ Direct text rendering
+│     └─ Display in chat
+│
+└─ Assistant Message (Streaming)
+   ├─ Token 1: "To"
+   ��  └─ Render: "To"
+   ├─ Token 2: " create"
+   │  └─ Render: "To create"
+   ├─ Token 3: " a"
+   │  └─ Render: "To create a"
+   ├─ Token 4: " branch"
+   │  └─ Render: "To create a branch"
+   ├─ ... (continues until stream ends)
+   │
+   └─ Complete
       ├─ Pass full content to Streamdown
       ├─ Parse markdown to HTML
       └─ Render with syntax highlighting, formatting, etc.

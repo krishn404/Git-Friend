@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Streamdown } from "@vercel/streamdown"
+import ReactMarkdown from "react-markdown"
 import { cn } from "@/lib/utils"
 import { Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react"
 import { useState } from "react"
@@ -74,20 +74,25 @@ export const StreamdownMessage = React.forwardRef<HTMLDivElement, StreamdownMess
             )}
           >
             {isAssistant ? (
-              <Streamdown
-                value={content}
+              <div
                 className={cn(
                   "prose prose-sm dark:prose-invert max-w-none",
-                  "[&_pre]:bg-background [&_pre]:border [&_pre]:border-muted",
-                  "[&_code]:text-foreground [&_code]:font-mono",
-                  "[&_a]:text-primary [&_a]:underline",
-                  "[&_table]:border-collapse [&_table]:w-full",
-                  "[&_th]:border [&_th]:border-muted [&_th]:px-3 [&_th]:py-2 [&_th]:text-left",
+                  "[&_pre]:bg-background [&_pre]:border [&_pre]:border-muted [&_pre]:rounded [&_pre]:overflow-x-auto",
+                  "[&_code]:text-foreground [&_code]:font-mono [&_code]:text-xs",
+                  "[&_a]:text-primary [&_a]:underline [&_a]:hover:opacity-80",
+                  "[&_table]:border-collapse [&_table]:w-full [&_table]:text-sm",
+                  "[&_th]:border [&_th]:border-muted [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold",
                   "[&_td]:border [&_td]:border-muted [&_td]:px-3 [&_td]:py-2",
+                  "[&_ul]:list-disc [&_ul]:pl-5",
+                  "[&_ol]:list-decimal [&_ol]:pl-5",
+                  "[&_li]:my-1",
+                  "[&_blockquote]:border-l-4 [&_blockquote]:border-muted [&_blockquote]:pl-4 [&_blockquote]:italic",
                 )}
-              />
+              >
+                <ReactMarkdown>{content}</ReactMarkdown>
+              </div>
             ) : (
-              <div className="whitespace-pre-wrap">{content}</div>
+              <div className="whitespace-pre-wrap text-sm">{content}</div>
             )}
           </div>
 

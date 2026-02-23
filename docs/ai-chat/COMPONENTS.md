@@ -1,10 +1,10 @@
 # AI Chat Components
 
-Detailed documentation for Streamdown-native chat components.
+Detailed documentation for the chat interface components.
 
 ## StreamdownMessage
 
-Renders assistant or user messages using Streamdown for native markdown support.
+Renders assistant or user messages with ReactMarkdown-powered markdown support.
 
 **Location:** `components/ai-chat/streamdown-message.tsx`
 
@@ -40,13 +40,13 @@ export function ChatMessage({ message }) {
 
 ### Features
 
-- **Streamdown Rendering** - Native markdown to HTML via Streamdown
+- **Markdown Rendering** - Native markdown to HTML via ReactMarkdown
 - **User Messages** - Right-aligned, primary color, timestamp
 - **Assistant Messages** - Left-aligned, card background, syntax highlighting
 - **Feedback System** - Like/dislike buttons on hover
 - **Copy-to-Clipboard** - Copy button for assistant messages
 - **Streaming Indicator** - Visual cursor during streaming
-- **Code Block Support** - Syntax highlighting via Streamdown
+- **Code Block Support** - Syntax highlighting with Tailwind styling
 
 ### Styling
 

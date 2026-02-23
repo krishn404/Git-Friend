@@ -16,7 +16,6 @@
     "@octokit/plugin-throttling": "^11.0.2",
     "@octokit/rest": "^22.0.0",
     "@radix-ui/react-accordion": "^1.1.2",
-    "@vercel/streamdown": "^0.2.0",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
     "@radix-ui/react-avatar": "^1.1.2",
