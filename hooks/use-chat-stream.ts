@@ -16,7 +16,6 @@ export type UseChatStreamReturn = {
   isLoading: boolean
   streamContent: string
   error: string | null
-  messageIdRef: React.MutableRefObject<string | null>
   
   // Actions
   addMessage: (message: ChatMessage) => void
@@ -24,9 +23,6 @@ export type UseChatStreamReturn = {
   appendToStreamContent: (chunk: string) => void
   completeStream: () => void
   clearMessages: () => void
-  setMessages: (messages: ChatMessage[]) => void
-  setLoading: (loading: boolean) => void
-  setError: (error: string | null) => void
   updateMessageFeedback: (messageId: string, feedback: "like" | "dislike" | null) => void
 }
 
@@ -86,15 +82,11 @@ export function useChatStream(): UseChatStreamReturn {
     isLoading,
     streamContent,
     error,
-    messageIdRef,
     addMessage,
     updateStreamContent,
     appendToStreamContent,
     completeStream,
     clearMessages,
-    setMessages,
-    setLoading,
-    setError,
     updateMessageFeedback,
   }
 }
