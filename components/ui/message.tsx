@@ -2,7 +2,8 @@
 
 import type * as React from "react"
 import { cn } from "@/lib/utils"
-import ReactMarkdown from "react-markdown"
+import { Streamdown } from "streamdown"
+import { code } from "@streamdown/code"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface MessageProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -53,21 +54,38 @@ export function MessageAvatar({ src, fallback, alt, className, ...props }: Messa
 
 interface MessageContentProps extends React.HTMLAttributes<HTMLDivElement> {
   markdown?: boolean
+  isStreaming?: boolean
 }
 
-export function MessageContent({ markdown = false, children, className, ...props }: MessageContentProps) {
+export function MessageContent({
+  markdown = false,
+  isStreaming = false,
+  children,
+  className,
+  ...props
+}: MessageContentProps) {
   return (
-    <div className={cn("px-4 py-3 rounded-2xl shadow-sm", className)} {...props}>
+    <div
+      className={cn(
+        "px-4 py-3 rounded-2xl bg-card text-card-foreground border border-border",
+        className,
+      )}
+      {...props}
+    >
       {markdown ? (
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <ReactMarkdown
-            // Security: Disable raw HTML and dangerous features
-            disallowedElements={["script", "iframe", "object", "embed", "form", "input", "button"]}
-            unwrapDisallowed={false}
+        <div
+          className="prose prose-sm max-w-none leading-relaxed text-[0.9375rem] dark:prose-invert"
+          data-streamdown-container
+        >
+          <Streamdown
+            plugins={{ code }}
+            isAnimating={isStreaming}
             components={{
-              // Security: Sanitize links to prevent javascript: and data: URLs
               a: ({ href, children, ...props }) => {
-                if (href && (href.startsWith("javascript:") || href.startsWith("data:") || href.startsWith("vbscript:"))) {
+                if (
+                  href &&
+                  (href.startsWith("javascript:") || href.startsWith("data:") || href.startsWith("vbscript:"))
+                ) {
                   return <span {...props}>{children}</span>
                 }
                 return (
@@ -76,17 +94,47 @@ export function MessageContent({ markdown = false, children, className, ...props
                   </a>
                 )
               },
-              // Security: Sanitize images to prevent data: URLs and VBScript
-              img: ({ src, ...props }) => {
-                if (src && (src.startsWith("javascript:") || src.startsWith("data:") || src.startsWith("vbscript:"))) {
+              img: ({ src, alt, ...props }) => {
+                if (
+                  typeof src === "string" &&
+                  (src.startsWith("javascript:") || src.startsWith("data:") || src.startsWith("vbscript:"))
+                ) {
                   return null
                 }
-                return <img src={src} {...props} />
+                return (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={typeof src === "string" ? src : undefined} alt={(alt as string) || ""} {...props} />
+                )
               },
+              table: ({ children, ...props }) => (
+                <div {...props} className="mt-4 space-y-3">
+                  {children}
+                </div>
+              ),
+              thead: ({ children }) => <>{children}</>,
+              tbody: ({ children }) => <>{children}</>,
+              tr: ({ children, ...props }) => (
+                <div
+                  {...props}
+                  className="rounded-md border border-border/70 bg-background px-3 py-2 text-xs sm:text-[0.8125rem]"
+                >
+                  {children}
+                </div>
+              ),
+              th: ({ children, ...props }) => (
+                <div {...props} className="font-medium text-foreground/80">
+                  {children}
+                </div>
+              ),
+              td: ({ children, ...props }) => (
+                <div {...props} className="mt-1 text-foreground/80">
+                  {children}
+                </div>
+              ),
             }}
           >
             {children as string}
-          </ReactMarkdown>
+          </Streamdown>
         </div>
       ) : (
         <div className="whitespace-pre-wrap">{children}</div>

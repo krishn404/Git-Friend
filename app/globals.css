@@ -1232,3 +1232,20 @@ html {
   display: block !important;
   margin: 0 auto !important;
 }
+
+/* Minimal chat scroll container – hide scrollbars but preserve scrolling */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* Editorial chat column */
+.chat-editorial {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}

@@ -34,12 +34,7 @@ export function UserAuthButton() {
   }
 
   if (loading) {
-    return (
-      <Button variant="outline" size="sm" disabled>
-        <span className="h-4 w-4 mr-2 rounded-full animate-pulse bg-muted-foreground/30"></span>
-        Loading...
-      </Button>
-    )
+    return null
   }
 
   if (user) {

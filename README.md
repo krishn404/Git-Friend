@@ -8,7 +8,7 @@
 
 
 <p align="center">
-  <img src="public/image.jpg" >
+  <img src="public/ogv1.jpg" >
 </p>
 <p align="center">
   <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status">

@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { GitBranch, ArrowRight } from 'lucide-react'
+import { GitBranch, ArrowRight, } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, fadeInUp } from './constants'
 import AiChatDemo from '@/components/ui/chat'
+
 
 export function HeroSection() {
   return (
@@ -27,16 +28,34 @@ export function HeroSection() {
           variants={staggerContainer}
           className="flex flex-col items-center text-center"
         >
-          <motion.div
-            variants={fadeInUp}
-            className="mb-4 flex justify-center"
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400">
-              <GitBranch className="h-3 w-3" />
-              <span>Git Workflow Assistant</span>
-            </div>
-          </motion.div>
+<motion.div variants={fadeInUp} className="mb-4 flex justify-center">
+  <a
+    href="https://vercel.com/open-source-program"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="relative group inline-flex items-center gap-2 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 cursor-pointer"
+  >
+    <svg
+      viewBox="0 0 76 65"
+      className="h-3 w-3 fill-current text-black dark:text-white"
+      aria-hidden="true"
+    >
+      <path d="M38 0L75.5 65H0.5L38 0Z" />
+    </svg>
 
+    <span>Backed by Vercel</span>
+
+    <div className="pointer-events-none absolute top-full z-10 mt-2 w-max max-w-xs opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+      <div className="rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 shadow-sm">
+        <img
+          alt="Vercel OSS Program"
+          src="https://vercel.com/oss/program-badge.svg"
+          className="h-6 w-auto"
+        />
+      </div>
+    </div>
+  </a>
+</motion.div>
           <motion.h1
             variants={fadeInUp}
             className="mb-6 text-4xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50 sm:text-5xl lg:text-6xl text-balance"
@@ -69,9 +88,12 @@ export function HeroSection() {
               </Link>
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <button className="inline-flex items-center justify-center rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent text-neutral-900 dark:text-neutral-50 px-6 py-3 text-sm font-medium transition-all hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-                Learn More
-              </button>
+            <button
+              suppressHydrationWarning
+              className="inline-flex items-center justify-center rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent text-neutral-900 dark:text-neutral-50 px-6 py-3 text-sm font-medium transition-all hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
+            >
+              Learn More
+            </button>
             </motion.div>
           </motion.div>
 

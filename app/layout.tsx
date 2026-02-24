@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import "@/app/globals.css"
+import "streamdown/styles.css"
 import { Inter, Playfair_Display } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/context/auth-context"

@@ -25,6 +25,8 @@ export function Navbar() {
     offset: ["start start", "end start"],
   })
 
+  const isChatRoute = pathname === "/chat"
+
   useMotionValueEvent(scrollY, "change", (latest) => {
     if (latest > 100) {
       setVisible(true)
@@ -35,10 +37,27 @@ export function Navbar() {
 
   const routes = [
     { name: "Home", path: "/" },
-    { name: "AI Chat", path: "/ai-chat" },
+    { name: "Chat", path: "/chat" },
     { name: "Generate README", path: "/generate-readme" },
     { name: "Git Mojis", path: "/git-mojis" },
   ]
+
+  if (isChatRoute) {
+    return (
+      <div className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/95">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Image src="/gitfriend-icon.png" alt="GitFriend Logo" width={24} height={24} />
+            <span className="hidden text-xs sm:inline">Git Friend</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <UserAuthButton />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <motion.div ref={ref} className="fixed inset-x-0 top-0 z-50 w-full">

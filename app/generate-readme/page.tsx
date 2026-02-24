@@ -202,7 +202,7 @@ export default function GenerateReadme() {
       setRepoData({
         name: repo,
         description: "Analyzing repository...",
-        language: "Loading...",
+        language: "Detecting...",
         stars: 0,
         forks: 0,
         owner: owner,

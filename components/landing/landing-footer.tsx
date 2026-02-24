@@ -7,7 +7,8 @@ export function LandingFooter() {
   return (
     <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+          {/* Brand */}
           <div>
             <div className="mb-4 flex items-center gap-2">
               <div className="rounded-lg bg-neutral-900 dark:bg-neutral-50 p-1.5 flex items-center justify-center">
@@ -21,13 +22,16 @@ export function LandingFooter() {
               </div>
               <span className="text-sm font-semibold">Git Friend</span>
             </div>
-            <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
-              AI Chat for Git and GitHub questions. Generate READMEs instantly.
+            <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400 max-w-xs">
+              AI chat for Git and GitHub. Instant README generation.
             </p>
           </div>
 
+          {/* Product */}
           <div>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-900 dark:text-neutral-50">Product</h3>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-900 dark:text-neutral-50">
+              Product
+            </h3>
             <ul className="space-y-2 text-xs text-neutral-600 dark:text-neutral-400">
               <li>
                 <Link href="/ai-chat" className="transition-colors hover:text-neutral-900 dark:hover:text-neutral-50">
@@ -47,41 +51,43 @@ export function LandingFooter() {
             </ul>
           </div>
 
+          {/* Open Source */}
           <div>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-900 dark:text-neutral-50">Resources</h3>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-900 dark:text-neutral-50">
+              Open Source
+            </h3>
             <ul className="space-y-2 text-xs text-neutral-600 dark:text-neutral-400">
               <li>
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-neutral-900 dark:hover:text-neutral-50">
-                  GitHub
-                </a>
-              </li>
-              <li>
-                <a href="https://git-scm.com" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-neutral-900 dark:hover:text-neutral-50">
-                  Git Docs
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-900 dark:text-neutral-50">Legal</h3>
-            <ul className="space-y-2 text-xs text-neutral-600 dark:text-neutral-400">
-              <li>
-                <a href="#" className="transition-colors hover:text-neutral-900 dark:hover:text-neutral-50">
-                  Privacy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="transition-colors hover:text-neutral-900 dark:hover:text-neutral-50">
-                  Terms
+                <a
+                  href="https://github.com/your-org/gitfriend"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-neutral-900 dark:hover:text-neutral-50"
+                >
+                  GitHub Repository
                 </a>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-neutral-200 dark:border-neutral-800 pt-8 text-center text-xs text-neutral-600 dark:text-neutral-400">
-          <p>© {new Date().getFullYear()} Git Friend. All rights reserved. Made with Vercel&apos;s design principles.</p>
+        {/* Bottom */}
+        <div className="flex flex-col items-center gap-4 border-t border-neutral-200 dark:border-neutral-800 pt-8 text-center">
+          <a
+            href="https://vercel.com/oss"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              alt="Vercel OSS Program"
+              src="https://vercel.com/oss/program-badge.svg"
+              className="h-6 w-auto"
+            />
+          </a>
+
+          <p className="text-xs text-neutral-600 dark:text-neutral-400">
+            © {new Date().getFullYear()} Git Friend. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

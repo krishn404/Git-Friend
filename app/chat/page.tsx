@@ -5,15 +5,8 @@ import { useEffect, useRef, useState } from "react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Navbar } from "@/components/ui/navbar"
-import { cn } from "@/lib/utils"
-import {
-  Message,
-  MessageAction,
-  MessageActions,
-  MessageAvatar,
-  MessageContent,
-} from "@/components/ui/message"
 import { ChatPromptInput } from "@/components/chat/chat-prompt-input"
+import { AIResponse } from "@/components/chat/ai-response"
 
 type ChatMessage = {
   id: string
@@ -29,30 +22,35 @@ const SUGGESTIONS = [
   "Show best practices for commit messages.",
 ]
 
-export default function AIChat() {
+export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+
   const chatRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const hasMessages = messages.length > 0
 
-  // Auto-scroll behavior: only when user is near bottom and autoScroll is enabled.
+  // Keep viewport gently pinned near the latest content while streaming.
   useEffect(() => {
     if (!autoScroll) return
-    if (!chatRef.current) return
-
     const el = chatRef.current
-    el.scrollTo({ top: el.scrollHeight, behavior: "auto" })
+    if (!el) return
+
+    const threshold = 48
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    if (distanceFromBottom > threshold) return
+
+    el.scrollTop = el.scrollHeight
   }, [messages, autoScroll])
 
   const handleScroll: React.UIEventHandler<HTMLDivElement> = (event) => {
     const target = event.currentTarget
-    const threshold = 48 // px from bottom
+    const threshold = 48
     const atBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - threshold
 
     if (!atBottom && autoScroll) {
@@ -65,8 +63,9 @@ export default function AIChat() {
   }
 
   const scrollToBottomSmooth = () => {
-    if (!chatRef.current) return
-    chatRef.current.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" })
+    const el = chatRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
     setAutoScroll(true)
     setShowScrollToBottom(false)
   }
@@ -173,100 +172,67 @@ export default function AIChat() {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-[#f7f7f5] text-foreground transition-colors duration-300">
+      <div className="flex min-h-screen flex-col bg-background text-foreground">
         <Navbar />
-        <main className="flex-1 pt-24">
-          <div className="container mx-auto flex h-[calc(100vh-6rem)] max-w-[700px] flex-col px-4 pb-4 md:px-0">
-            {!hasMessages ? (
-              <div className="flex flex-1 items-center justify-center">
-                <div className="flex flex-col items-center gap-4 text-center">
-                  <ChatPromptInput
-                    value={input}
-                    onChange={setInput}
-                    onSubmit={handleSubmit}
-                    isStreaming={isStreaming}
-                    onStop={handleStop}
-                    suggestions={SUGGESTIONS}
-                  />
-                </div>
-              </div>
-            ) : (
-              <>
-                <div
-                  ref={chatRef}
-                  onScroll={handleScroll}
-                  className="flex-1 space-y-4 overflow-y-auto pb-4"
-                >
-                  {messages.map((message, index) => {
-                    const previous = messages[index - 1]
-                    const anchoredPrompt =
-                      message.role === "assistant" && previous?.role === "user"
-                        ? previous.content
-                        : undefined
-
-                    return (
-                      <Message
-                        key={message.id}
-                        align={message.role === "user" ? "end" : "start"}
-                        className="px-1"
-                      >
-                        <MessageAvatar
-                          fallback={message.role === "user" ? "You" : "GF"}
-                          className={cn(
-                            "bg-transparent text-foreground border border-border",
-                            message.role === "user" && "bg-transparent",
-                          )}
-                        />
-                        <div className="flex min-w-0 flex-1 flex-col gap-1">
-                          {anchoredPrompt && (
-                            <p className="text-[11px] font-normal leading-snug text-muted-foreground">
-                              {anchoredPrompt}
-                            </p>
-                          )}
-                          <MessageContent
-                            markdown={message.role === "assistant"}
-                            isStreaming={message.isStreaming}
-                            className={cn(
-                              "border-border",
-                              message.role === "user" && "bg-background",
-                              message.role === "assistant" && "bg-background",
-                            )}
-                          >
-                            {message.content}
-                          </MessageContent>
-                          {message.role === "assistant" && (
-                            <MessageActions className="mt-1 text-[11px] text-muted-foreground" />
-                          )}
-                        </div>
-                      </Message>
-                    )
-                  })}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                <div className="mt-2 flex items-center justify-center border-t border-border/60 pt-3">
-                  <ChatPromptInput
-                    value={input}
-                    onChange={setInput}
-                    onSubmit={handleSubmit}
-                    isStreaming={isStreaming}
-                    onStop={handleStop}
-                    suggestions={SUGGESTIONS}
-                  />
-                </div>
-
-                {showScrollToBottom && (
-                  <div className="pointer-events-none fixed bottom-20 left-0 right-0 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={scrollToBottomSmooth}
-                      className="pointer-events-auto rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-muted"
-                    >
-                      Scroll to latest
-                    </button>
-                  </div>
+        <main className="flex-1 pt-16">
+          <div className="chat-editorial flex h-[calc(100vh-4rem)] flex-col px-4 pb-4 md:px-6">
+            <div
+              ref={chatRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto hide-scrollbar"
+            >
+              <div className="space-y-10 py-6 md:py-10">
+                {!hasMessages && (
+                  <section className="mt-8 space-y-3 text-sm leading-relaxed text-muted-foreground md:text-base md:leading-loose">
+                    <p className="font-medium text-foreground">
+                      A calm space for Git and GitHub questions.
+                    </p>
+                    <p>
+                      Ask in your own words and Git Friend will respond with clear, editorial answers
+                      designed for focused reading.
+                    </p>
+                  </section>
                 )}
-              </>
+
+                {messages.map((message) =>
+                  message.role === "user" ? (
+                    <div key={message.id} className="flex justify-end">
+                      <div className="max-w-[75%] text-right text-sm leading-relaxed text-foreground/90 md:text-[0.975rem] md:leading-relaxed">
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={message.id} className="flex justify-start">
+                      <AIResponse content={message.content} isStreaming={message.isStreaming} />
+                    </div>
+                  ),
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3">
+              <ChatPromptInput
+                value={input}
+                onChange={setInput}
+                onSubmit={handleSubmit}
+                isStreaming={isStreaming}
+                onStop={handleStop}
+                suggestions={SUGGESTIONS}
+              />
+            </div>
+
+            {showScrollToBottom && (
+              <div className="pointer-events-none fixed bottom-20 left-0 right-0 flex justify-center">
+                <button
+                  type="button"
+                  onClick={scrollToBottomSmooth}
+                  className="pointer-events-auto rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
+                >
+                  Scroll to latest
+                </button>
+              </div>
             )}
           </div>
         </main>
@@ -274,3 +240,4 @@ export default function AIChat() {
     </ProtectedRoute>
   )
 }
+
