@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowUp } from "lucide-react"
+import { useRef, useState } from "react"
+import { ArrowUp, Square } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -15,9 +15,6 @@ type ChatPromptInputProps = {
   suggestions?: string[]
 }
 
-const INPUT_HEIGHT = 52
-const TEXTAREA_HEIGHT = 24
-
 export function ChatPromptInput({
   value,
   onChange,
@@ -27,77 +24,73 @@ export function ChatPromptInput({
   suggestions = [],
 }: ChatPromptInputProps) {
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const formRef = useRef<HTMLFormElement | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   const filteredSuggestions = suggestions.filter((s) =>
     value ? s.toLowerCase().includes(value.toLowerCase()) : true,
   )
 
+  const handleInputResize: React.FormEventHandler<HTMLTextAreaElement> = (event) => {
+    const el = event.currentTarget
+    el.style.height = "auto"
+    const next = Math.min(el.scrollHeight, 160)
+    el.style.height = `${next}px`
+  }
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault()
+      if (!isStreaming && value.trim()) {
+        formRef.current?.requestSubmit()
+      }
+    }
+  }
+
+  const handleSuggestionClick = (suggestion: string) => {
+    onChange(suggestion)
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        const el = textareaRef.current
+        el.focus()
+        el.selectionStart = el.selectionEnd = el.value.length
+      }
+    })
+  }
+
   return (
-    <form onSubmit={onSubmit} className="w-full">
-      <div className="mx-auto w-full max-w-[640px] min-w-[640px]">
-        {/* INPUT SHELL — IMMUTABLE */}
-        <div
-          className="relative flex items-center rounded-2xl border border-border bg-card px-3"
-          style={{ height: INPUT_HEIGHT }}
-        >
-          {/* TEXTAREA — FIXED HEIGHT, INTERNAL SCROLL */}
+    <form ref={formRef} onSubmit={onSubmit} className="w-full">
+      <div className="w-full">
+        <div className="relative flex items-end gap-2 px-3 py-2">
           <textarea
+            ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onInput={handleInputResize}
+            onKeyDown={handleKeyDown}
             placeholder="Ask anything about Git or GitHub..."
             disabled={isStreaming}
+            rows={1}
             className={cn(
-              "flex-1 resize-none bg-transparent text-sm leading-relaxed",
-              "h-[24px] max-h-[24px] overflow-y-auto",
-              "outline-none placeholder:text-muted-foreground",
+              "flex-1 resize-none bg-transparent text-sm leading-relaxed text-zinc-900 placeholder:text-zinc-500",
+              "max-h-40 min-h-[24px] py-1 pr-10 outline-none",
             )}
           />
 
-          {/* SEND BUTTON — FIXED POSITION */}
           <Button
             type={isStreaming ? "button" : "submit"}
             size="icon"
-            className="ml-3 h-8 w-8 shrink-0 rounded-full border border-border bg-background hover:bg-muted"
+            className="mb-[2px] h-8 w-8 shrink-0 rounded-full border border-zinc-300 bg-zinc-900 text-zinc-50 hover:bg-zinc-800"
             disabled={!value.trim() && !isStreaming}
             onClick={isStreaming ? onStop : undefined}
           >
-            <ArrowUp className="h-4 w-4" />
+            {isStreaming ? <Square className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
           </Button>
         </div>
 
-        {/* SUGGESTIONS — ZERO LAYOUT COUPLING */}
-        <div className="mt-2">
-          {suggestions.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowSuggestions((p) => !p)}
-              className="text-[11px] text-muted-foreground hover:underline"
-            >
-              {showSuggestions ? "Hide suggestions" : "Show suggestions"}
-            </button>
-          )}
-
-          <div
-            className={cn(
-              "mt-1 min-h-[28px] flex flex-wrap gap-2 text-[11px] text-muted-foreground transition-opacity",
-              showSuggestions
-                ? "opacity-100 pointer-events-auto"
-                : "opacity-0 pointer-events-none",
-            )}
-          >
-            {filteredSuggestions.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => onChange(suggestion)}
-                className="rounded-full border border-border bg-background px-3 py-1 hover:bg-muted"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Suggestions are handled by the parent container if needed */}
       </div>
     </form>
   )
 }
+

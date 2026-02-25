@@ -37,7 +37,7 @@ export function Navbar() {
 
   const routes = [
     { name: "Home", path: "/" },
-    { name: "Chat", path: "/chat" },
+    { name: "AI Chat", path: "/ai-chat" },
     { name: "Generate README", path: "/generate-readme" },
     { name: "Git Mojis", path: "/git-mojis" },
   ]

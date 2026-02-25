@@ -80,6 +80,16 @@ export function MessageContent({
           <Streamdown
             plugins={{ code }}
             isAnimating={isStreaming}
+            animated={{
+              animation: "slideUp",
+              duration: 260,
+              easing: "ease-out",
+              sep: "block",
+            }}
+            controls={{
+              code: true,
+              table: true,
+            }}
             components={{
               a: ({ href, children, ...props }) => {
                 if (
