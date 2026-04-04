@@ -15,45 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Upload, Loader2 } from "lucide-react"
+import { Upload, Loader2, Check } from "lucide-react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
-import MarkdownPreview from "@/components/readme/markdown-preview"
+import { InitialInputStage } from "@/components/readme/initial-input-stage"
+import { ReadmeWorkspace } from "@/components/readme/readme-workspace"
 
 import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  GitBranch,
-  Copy,
-  Check,
-  FileText,
-  BookOpen,
-  Sparkles,
-  Zap,
-  Github,
-  Code,
-  AlertCircle,
-  Download,
-} from "lucide-react"
-import Link from "next/link"
 import { Navbar } from "@/components/ui/navbar"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { motion } from "framer-motion"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useAuth } from "@/context/auth-context"
 import { useGitHubAuth } from "@/context/github-auth-context"
 
 export default function GenerateReadme() {
-  // Example repositories
-  const exampleRepos = [
-    { name: "React", owner: "facebook/react", icon: <Code className="h-5 w-5" /> },
-    { name: "GitFriend", owner: "krishn404/Git-Friend", icon: <Zap className="h-5 w-5" /> },
-    { name: "TailwindCSS", owner: "tailwindlabs/tailwindcss", icon: <Sparkles className="h-5 w-5" /> },
-  ]
-
   const [repoUrl, setRepoUrl] = useState("")
   const [generatedReadme, setGeneratedReadme] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -68,14 +43,8 @@ export default function GenerateReadme() {
     created_at?: string
     updated_at?: string
   } | null>(null)
-  // Navbar provides theme toggle and auth controls
   const [customRequirements, setCustomRequirements] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [hoverState, setHoverState] = useState({
-    card: false,
-    button: false,
-    examples: Array(exampleRepos.length).fill(false),
-  })
   const { isGuest, guestTimeLeft, guestLogout } = useAuth()
   const [showGuestExpired, setShowGuestExpired] = useState(false)
   const [showApplyDialog, setShowApplyDialog] = useState(false)
@@ -99,12 +68,6 @@ export default function GenerateReadme() {
     // Simple validation for GitHub repository URL
     const githubRegex = /^https?:\/\/github\.com\/[^/]+\/[^/]+\/?$/i
     return githubRegex.test(url)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && validateRepoUrl(repoUrl)) {
-      fetchRepoData()
-    }
   }
 
   // Block API calls and UI actions if guest session expired
@@ -293,19 +256,6 @@ export default function GenerateReadme() {
     document.body.removeChild(element)
   }
 
-  const handleExampleClick = (repo: string) => {
-    setRepoUrl(`https://github.com/${repo}`)
-  }
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A"
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
-
   // Show guest timer at the top if guest
   const guestTimerBar =
     isGuest && guestTimeLeft && guestTimeLeft > 0 ? (
@@ -315,403 +265,155 @@ export default function GenerateReadme() {
       </div>
     ) : null
 
+  // Phase-based state: 'initial' | 'workspace'
+  const phase = generatedReadme ? "workspace" : "initial"
+
   return (
     <ProtectedRoute>
       {guestTimerBar}
-      <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors duration-300">
-        <Navbar />
+      {phase === "initial" ? (
+        // Phase 1: Initial Input Stage
+        <div className="flex min-h-screen flex-col bg-background text-foreground">
+          <Navbar />
+          <main className="flex-1 flex items-center justify-center pt-16">
+            <InitialInputStage
+              onSubmit={(url) => {
+                setRepoUrl(url)
+                fetchRepoData(false)
+              }}
+              isLoading={isGenerating}
+              error={error}
+            />
+          </main>
+        </div>
+      ) : (
+        // Phase 2: Workspace with split-screen
+        <div className="flex min-h-screen flex-col bg-background text-foreground">
+          <Navbar />
+          <main className="flex-1 overflow-hidden">
+            <ReadmeWorkspace
+              repoUrl={repoUrl}
+              markdown={generatedReadme}
+              onCopy={copyToClipboard}
+              onDownload={downloadReadme}
+              onNew={() => {
+                setRepoUrl("")
+                setGeneratedReadme("")
+                setRepoData(null)
+              }}
+              onRegenerate={() => fetchRepoData(true)}
+              onApply={() => {
+                if (!isConnected) {
+                  connectGitHub()
+                  return
+                }
+                setShowApplyDialog(true)
+                fetchBranches()
+              }}
+              copied={copied}
+              canRegenerate={!isGenerating && !!repoUrl}
+              isGenerating={isGenerating}
+              onCustomAction={(action) => {
+                // Handle custom instructions - this could trigger a new API call with refinements
+                console.log("Custom action:", action)
+              }}
+              onEditSection={(section) => {
+                // Handle section editing - trigger regeneration with section focus
+                console.log("Edit section:", section)
+              }}
+              onAdjustTone={(tone) => {
+                // Handle tone adjustment - trigger regeneration with tone preference
+                console.log("Adjust tone:", tone)
+              }}
+            />
+          </main>
+        </div>
+      )}
 
-        {/* Main content */}
-        <main className="flex-1 relative pt-24">
-          <div className="container max-w-6xl mx-auto py-12">
-            <div className="flex justify-center mb-2">
-              <div className="bg-[hsl(var(--readme-primary))/20] text-[hsl(var(--readme-primary))] px-4 py-1.5 rounded-full text-sm font-medium">
-                DOCUMENTATION ASSISTANT
+
+
+      {/* Apply to GitHub Dialog - outside of phase structure */}
+      <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Apply README to GitHub</DialogTitle>
+            <DialogDescription>
+              This will create or update the README.md file in your repository.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {applySuccess ? (
+            <div className="flex flex-col items-center justify-center py-6">
+              <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">
+                <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
-            </div>
-
-            <motion.div
-              className="mb-12 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h1 className="text-5xl font-bold mb-4">
-                <span>Readme</span> <span className="text-[hsl(var(--readme-primary))]">Assistant</span>{" "}
-                <span>for Your</span> <span className="text-[hsl(var(--readme-primary))]">Project</span>
-              </h1>
-              <p className="text-[hsl(var(--readme-text-muted))] max-w-2xl mx-auto text-lg">
-                Enter a GitHub repository URL and let Git Friend analyze your codebase to generate professional
-                documentation in seconds.
+              <p className="text-lg font-medium">README Applied Successfully!</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Check your repository to see the changes.
               </p>
-            </motion.div>
-
-            {error && (
-              <motion.div
-                className="max-w-3xl mx-auto mb-6"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </motion.div>
-            )}
-
-            <motion.div
-              className="max-w-3xl mx-auto mb-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              onMouseEnter={() => setHoverState((prev) => ({ ...prev, card: true }))}
-              onMouseLeave={() => setHoverState((prev) => ({ ...prev, card: false }))}
-            >
-              <Card
-                className={`border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))] shadow-lg overflow-hidden transition-all duration-300 ${
-                  hoverState.card ? "shadow-xl border-[hsl(var(--readme-primary))/30]" : ""
-                }`}
-              >
-                <CardContent className="p-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <div className="h-10 w-10 rounded-full bg-[hsl(var(--readme-primary))/20] flex items-center justify-center">
-                        <GitBranch className="h-5 w-5 text-[hsl(var(--readme-primary))]" />
-                      </div>
-                      <span className="text-xl font-medium">Generate Your README</span>
-                    </div>
-                  </div>
-
-                  <p className="text-[hsl(var(--readme-text-muted))] text-sm mb-6">
-                    Enter a GitHub repository URL to analyze code and generate a detailed README file that explains what
-                    your project does, why it exists, and how to use it.
-                  </p>
-
-                  <div className="relative mb-6 group">
-                    <div className="absolute inset-0 rounded-md -m-1 bg-gradient-to-r from-[hsl(var(--readme-primary))/0] via-[hsl(var(--readme-primary))/50] to-[hsl(var(--readme-primary))/0] opacity-0 group-hover:opacity-100 transition-opacity blur-md"></div>
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--readme-text-muted))]">
-                      <Github className="h-5 w-5" />
-                    </div>
-                    <input
-                      className="w-full h-12 bg-[hsl(var(--readme-card-bg))] border border-[hsl(var(--readme-border))] rounded-md px-10 py-2 text-[hsl(var(--readme-text))] placeholder:text-[hsl(var(--readme-text-muted))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--readme-primary))] relative"
-                      placeholder="https://github.com/username/repository"
-                      value={repoUrl}
-                      onChange={(e) => {
-                        setRepoUrl(e.target.value)
-                        // Auto-start generation when valid URL is pasted
-                        if (validateRepoUrl(e.target.value) && !isGenerating && !generatedReadme) {
-                          setTimeout(() => fetchRepoData(false), 500) // Small delay to allow paste to complete
-                        }
-                      }}
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      className={`bg-[hsl(var(--readme-primary))] hover:bg-[hsl(var(--readme-primary-hover))] text-[hsl(var(--readme-primary-foreground))] px-6 py-2 rounded-md flex items-center gap-2 transition-all duration-300 ${
-                        hoverState.button ? "shadow-lg shadow-[hsl(var(--readme-primary))/20] scale-105" : ""
-                      }`}
-                      onClick={() => fetchRepoData(false)}
-                      disabled={isGenerating || !repoUrl}
-                      onMouseEnter={() => setHoverState((prev) => ({ ...prev, button: true }))}
-                      onMouseLeave={() => setHoverState((prev) => ({ ...prev, button: false }))}
-                    >
-                      {isGenerating ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="h-4 w-4 border-2 border-current border-t-transparent rounded-full"
-                          />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="h-4 w-4" />
-                          Generate README
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Example repositories */}
-            {!generatedReadme && !isGenerating && (
-              <motion.div
-                className="max-w-3xl mx-auto mb-16"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <h3 className="text-lg font-medium mb-4 text-center">Try with popular repositories</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {exampleRepos.map((repo, index) => (
-                    <Card
-                      key={index}
-                      className={`border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))] cursor-pointer hover:bg-[hsl(var(--readme-bg))] transition-all duration-300 ${
-                        hoverState.examples[index]
-                          ? "shadow-md border-[hsl(var(--readme-primary))/30] scale-[1.02]"
-                          : ""
-                      }`}
-                      onClick={() => handleExampleClick(repo.owner)}
-                      onMouseEnter={() => {
-                        const newExamples = [...hoverState.examples]
-                        newExamples[index] = true
-                        setHoverState((prev) => ({ ...prev, examples: newExamples }))
-                      }}
-                      onMouseLeave={() => {
-                        const newExamples = [...hoverState.examples]
-                        newExamples[index] = false
-                        setHoverState((prev) => ({ ...prev, examples: newExamples }))
-                      }}
-                    >
-                      <CardContent className="p-4 flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-[hsl(var(--readme-primary))/20] flex items-center justify-center">
-                          {repo.icon}
-                        </div>
-                        <div>
-                          <div className="font-medium">{repo.name}</div>
-                          <div className="text-xs text-[hsl(var(--readme-text-muted))]">{repo.owner}</div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Repository</label>
+                  <p className="text-sm text-muted-foreground">{repoUrl}</p>
                 </div>
-              </motion.div>
-            )}
-
-            {generatedReadme && (
-              <>
-                <motion.div
-                  className="max-w-5xl mx-auto"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Tabs defaultValue="preview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-8 bg-[hsl(var(--readme-card-bg))] border border-[hsl(var(--readme-border))]">
-                      <TabsTrigger
-                        value="preview"
-                        className="flex items-center gap-2 data-[state=active]:bg-[hsl(var(--readme-primary))] data-[state=active]:text-[hsl(var(--readme-primary-foreground))]"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                        Preview
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="markdown"
-                        className="flex items-center gap-2 data-[state=active]:bg-[hsl(var(--readme-primary))] data-[state=active]:text-[hsl(var(--readme-primary-foreground))]"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Markdown
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="preview">
-                      <MarkdownPreview
-                        markdown={generatedReadme}
-                        onNew={() => {
-                          setRepoUrl("")
-                          setGeneratedReadme("")
-                          setRepoData(null)
-                        }}
-                        onDownload={downloadReadme}
-                        onCopy={copyToClipboard}
-                        onRegenerate={() => fetchRepoData(true)}
-                        canRegenerate={!isGenerating && !!repoUrl}
-                        copied={copied}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="markdown">
-                      <Card className="relative shadow-lg border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))]">
-                        <CardContent className="pt-6">
-                          <div className="absolute top-4 right-4 flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2 border-[hsl(var(--readme-border))]  hover:bg-[hsl(var(--readme-bg))] bg-transparent"
-                              onClick={() => {
-                                setRepoUrl("")
-                                setGeneratedReadme("")
-                                setRepoData(null)
-                              }}
-                            >
-                              <GitBranch className="h-4 w-4" />
-                              New
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2 border-[hsl(var(--readme-border))] hover:bg-[hsl(var(--readme-bg))] bg-transparent"
-                              onClick={downloadReadme}
-                            >
-                              <Download className="h-4 w-4" />
-                              Download
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2 border-[hsl(var(--readme-border))] hover:bg-[hsl(var(--readme-bg))] bg-transparent"
-                              onClick={copyToClipboard}
-                            >
-                              {copied ? (
-                                <>
-                                  <Check className="h-4 w-4" />
-                                  Copied!
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="h-4 w-4" />
-                                  Copy
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                if (!isConnected) {
-                                  connectGitHub()
-                                  return
-                                }
-                                setShowApplyDialog(true)
-                                fetchBranches()
-                              }}
-                              className="flex items-center gap-2 border-[hsl(var(--readme-border))] hover:bg-[hsl(var(--readme-bg))] bg-transparent"
-                            >
-                              <Upload className="h-4 w-4" />
-                              {isConnected ? "Apply to GitHub" : "Connect GitHub"}
-                            </Button>
-                          </div>
-                          <ScrollArea className="h-[600px] pr-4 mt-8">
-                            <pre className="bg-[hsl(var(--readme-bg))] p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                              <code>{generatedReadme}</code>
-                            </pre>
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </motion.div>
-              </>
-            )}
-          </div>
-
-          {/* Show streaming README as it's being generated */}
-          {isGenerating && !generatedReadme && (
-            <motion.div
-              className="max-w-5xl mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card className="border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))] shadow-lg">
-                <CardContent className="p-8">
-                  <div className="flex items-center justify-center gap-3 mb-4">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="h-6 w-6 border-2 border-[hsl(var(--readme-primary))] border-t-transparent rounded-full"
-                    />
-                    <span className="text-lg font-medium">Generating README...</span>
-                  </div>
-                  <p className="text-center text-[hsl(var(--readme-text-muted))] text-sm">
-                    Analyzing your repository and creating documentation
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Target Branch</label>
+                  <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map((branch) => (
+                        <SelectItem key={branch} value={branch}>
+                          {branch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="rounded-lg bg-muted p-3 text-sm">
+                  <p className="font-medium mb-1">⚠️ Important</p>
+                  <p className="text-muted-foreground">
+                    This will create a new commit with the message "docs: Update README.md via Git Friend"
                   </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Apply to GitHub Dialog */}
-          <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Apply README to GitHub</DialogTitle>
-                <DialogDescription>
-                  This will create or update the README.md file in your repository.
-                </DialogDescription>
-              </DialogHeader>
+                </div>
+              </div>
               
-              {applySuccess ? (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">
-                    <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <p className="text-lg font-medium">README Applied Successfully!</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Check your repository to see the changes.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Repository</label>
-                      <p className="text-sm text-muted-foreground">{repoUrl}</p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Target Branch</label>
-                      <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a branch" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {branches.map((branch) => (
-                            <SelectItem key={branch} value={branch}>
-                              {branch}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="rounded-lg bg-muted p-3 text-sm">
-                      <p className="font-medium mb-1">⚠️ Important</p>
-                      <p className="text-muted-foreground">
-                        This will create a new commit with the message "docs: Update README.md via Git Friend"
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowApplyDialog(false)}
-                      disabled={isApplying}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={applyReadmeToGitHub}
-                      disabled={isApplying}
-                      className="bg-[hsl(var(--readme-primary))] hover:bg-[hsl(var(--readme-primary-hover))]"
-                    >
-                      {isApplying ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Applying...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Apply README
-                        </>
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </>
-              )}
-            </DialogContent>
-          </Dialog>
-        </main>
-      </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowApplyDialog(false)}
+                  disabled={isApplying}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={applyReadmeToGitHub}
+                  disabled={isApplying}
+                  className="bg-[hsl(var(--readme-primary))] hover:bg-[hsl(var(--readme-primary-hover))]"
+                >
+                  {isApplying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Apply README
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       
       {/* Guest session expired modal */}
       {showGuestExpired && (
