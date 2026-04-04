@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { Streamdown } from "streamdown"
 import { code } from "@streamdown/code"
 import { ContentActionMenu, type ActionType } from "./content-action-menu"
 import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { RotateCcw, RotateCw } from "lucide-react"
 
 type Props = {
   markdown: string
@@ -13,10 +15,76 @@ type Props = {
   isLoading?: boolean
 }
 
+// History management for undo/redo
+interface HistoryEntry {
+  markdown: string
+  timestamp: number
+}
+
 export function EditablePreview({ markdown, onMarkdownChange, onAIAction, isLoading = false }: Props) {
   const [selectedText, setSelectedText] = useState("")
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null)
+  const [history, setHistory] = useState<HistoryEntry[]>([{ markdown, timestamp: Date.now() }])
+  const [historyIndex, setHistoryIndex] = useState(0)
   const previewRef = useRef<HTMLDivElement>(null)
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Sync external markdown changes to history
+  useEffect(() => {
+    if (markdown !== history[historyIndex]?.markdown) {
+      addToHistory(markdown)
+    }
+  }, [markdown])
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault()
+        handleUndo()
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) {
+        e.preventDefault()
+        handleRedo()
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [historyIndex, history])
+
+  const addToHistory = useCallback(
+    (newMarkdown: string) => {
+      const newHistory = history.slice(0, historyIndex + 1)
+      newHistory.push({ markdown: newMarkdown, timestamp: Date.now() })
+      setHistory(newHistory)
+      setHistoryIndex(newHistory.length - 1)
+
+      // Auto-save with debounce
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current)
+      }
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        onMarkdownChange(newMarkdown)
+      }, 500)
+    },
+    [history, historyIndex, onMarkdownChange]
+  )
+
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1
+      setHistoryIndex(newIndex)
+      onMarkdownChange(history[newIndex].markdown)
+    }
+  }, [historyIndex, history, onMarkdownChange])
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1
+      setHistoryIndex(newIndex)
+      onMarkdownChange(history[newIndex].markdown)
+    }
+  }, [historyIndex, history, onMarkdownChange])
 
   const handleTextSelection = useCallback(() => {
     const selection = window.getSelection()
@@ -63,12 +131,14 @@ export function EditablePreview({ markdown, onMarkdownChange, onAIAction, isLoad
 
         // Update the markdown to reflect the change
         const updatedMarkdown = previewRef.current.innerText
-        onMarkdownChange(updatedMarkdown)
+        addToHistory(updatedMarkdown)
+        setMenuPosition(null)
+        setSelectedText("")
       } catch (err) {
         console.error("Error applying edit:", err)
       }
     },
-    [selectedText, onMarkdownChange]
+    [selectedText, addToHistory]
   )
 
   return (
@@ -80,7 +150,32 @@ export function EditablePreview({ markdown, onMarkdownChange, onAIAction, isLoad
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[hsl(var(--readme-border))]">
-        <h2 className="text-sm font-medium text-[hsl(var(--readme-text))]">Preview</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-medium text-[hsl(var(--readme-text))]">Preview</h2>
+          {/* Undo/Redo Controls */}
+          <div className="flex items-center gap-1 ml-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleUndo}
+              disabled={historyIndex <= 0}
+              title="Undo (Ctrl+Z)"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleRedo}
+              disabled={historyIndex >= history.length - 1}
+              title="Redo (Ctrl+Y)"
+            >
+              <RotateCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
         <span className="text-xs text-[hsl(var(--readme-text-muted))]">Select text to edit or refine</span>
       </div>
 
@@ -94,10 +189,15 @@ export function EditablePreview({ markdown, onMarkdownChange, onAIAction, isLoad
           onMouseUp={handleTextSelection}
           onKeyUp={handleTextSelection}
           onTouchEnd={handleTextSelection}
+          onInput={() => {
+            if (previewRef.current) {
+              addToHistory(previewRef.current.innerText)
+            }
+          }}
           spellCheck="false"
         >
           <Streamdown
-            markdown={markdown}
+            markdown={history[historyIndex]?.markdown || markdown}
             components={{
               code,
             }}
