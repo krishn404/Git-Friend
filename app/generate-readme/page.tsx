@@ -256,6 +256,29 @@ export default function GenerateReadme() {
     document.body.removeChild(element)
   }
 
+  const handleAIAction = async (action: string, selectedText: string): Promise<string> => {
+    try {
+      const response = await fetch("/api/readme/refine-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action, // 'shorten', 'expand', 'rephrase', 'refine'
+          text: selectedText,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to refine text")
+      }
+
+      const data = await response.json()
+      return data.refinedText || selectedText
+    } catch (error) {
+      console.error("AI action error:", error)
+      throw error
+    }
+  }
+
   // Show guest timer at the top if guest
   const guestTimerBar =
     isGuest && guestTimeLeft && guestTimeLeft > 0 ? (
@@ -294,6 +317,9 @@ export default function GenerateReadme() {
             <ReadmeWorkspace
               repoUrl={repoUrl}
               markdown={generatedReadme}
+              onMarkdownChange={(newMarkdown) => {
+                setGeneratedReadme(newMarkdown)
+              }}
               onCopy={copyToClipboard}
               onDownload={downloadReadme}
               onNew={() => {
@@ -313,18 +339,7 @@ export default function GenerateReadme() {
               copied={copied}
               canRegenerate={!isGenerating && !!repoUrl}
               isGenerating={isGenerating}
-              onCustomAction={(action) => {
-                // Handle custom instructions - this could trigger a new API call with refinements
-                console.log("Custom action:", action)
-              }}
-              onEditSection={(section) => {
-                // Handle section editing - trigger regeneration with section focus
-                console.log("Edit section:", section)
-              }}
-              onAdjustTone={(tone) => {
-                // Handle tone adjustment - trigger regeneration with tone preference
-                console.log("Adjust tone:", tone)
-              }}
+              onAIAction={handleAIAction}
             />
           </main>
         </div>
