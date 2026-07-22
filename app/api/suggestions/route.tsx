@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server"
 import { Groq } from "groq-sdk"
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+const groq = process.env.GROQ_API_KEY ? new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+}) : null
 
 export async function GET() {
   try {
+    if (!groq) {
+      return NextResponse.json({ 
+        error: "Suggestions service is not configured (GROQ_API_KEY missing)" 
+      }, { status: 503 })
+    }
+
     const completion = await groq.chat.completions.create({
       messages: [
         {

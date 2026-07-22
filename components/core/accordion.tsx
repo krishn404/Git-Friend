@@ -1,5 +1,5 @@
 "use client"
-import { motion, AnimatePresence, type Transition, type Variants, type Variant, MotionConfig } from "motion/react"
+import { motion, AnimatePresence, type Transition, type Variants, type Variant, MotionConfig } from "framer-motion"
 import { cn } from "@/lib/utils"
 import React, { createContext, useContext, useState, type ReactNode, useEffect, useCallback, useMemo } from "react"
 

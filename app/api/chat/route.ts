@@ -3,12 +3,19 @@ import { Groq } from "groq-sdk"
 import { scanRepository, type ScannedFile, type RepoAnalysis } from "@/lib/github"
 
 // Initialize Groq
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+const groq = process.env.GROQ_API_KEY ? new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+}) : null
 
 export async function POST(req: Request) {
   try {
+    // Check for required API keys
+    if (!groq) {
+      return NextResponse.json({ 
+        error: "Chat service is not configured (GROQ_API_KEY missing)" 
+      }, { status: 503 })
+    }
+
     const body = await req.json()
     const { messages, repoUrl }: { messages: Array<{ role: string; content: string }>; repoUrl?: string } = body
 

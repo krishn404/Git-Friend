@@ -26,6 +26,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const guestTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    if (!auth) {
+      console.warn("Firebase auth not initialized")
+      setLoading(false)
+      return
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user)
       setLoading(false)
@@ -66,6 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signInWithGoogle = async () => {
+    if (!auth || !googleProvider) {
+      console.error("Firebase not initialized")
+      return
+    }
     try {
       await signInWithPopup(auth, googleProvider)
     } catch (error) {
@@ -74,6 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    if (!auth) {
+      console.error("Firebase not initialized")
+      guestLogout()
+      return
+    }
     try {
       await firebaseSignOut(auth)
     } catch (error) {

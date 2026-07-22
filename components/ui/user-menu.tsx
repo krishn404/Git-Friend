@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 
 export function UserMenu() {
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -39,7 +39,7 @@ export function UserMenu() {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
-      await logout()
+      await signOut()
       router.push("/")
     } catch (error) {
       console.error("Logout error:", error)

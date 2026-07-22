@@ -149,26 +149,6 @@ const config = {
         "fade-in-out": "fadeInOut 3s ease-in-out infinite",
       },
     },
-    // Add this to the base section of the CSS:
-
-    "--sidebar-background": "0 0% 98%",
-    "--sidebar-foreground": "240 5.3% 26.1%",
-    "--sidebar-primary": "240 5.9% 10%",
-    "--sidebar-primary-foreground": "0 0% 98%",
-    "--sidebar-accent": "240 4.8% 95.9%",
-    "--sidebar-accent-foreground": "240 5.9% 10%",
-    "--sidebar-border": "220 13% 91%",
-    "--sidebar-ring": "217.2 91.2% 59.8%",
-
-    // And in the dark mode section
-    "--sidebar-background": "240 5.9% 10%",
-    "--sidebar-foreground": "240 4.8% 95.9%",
-    "--sidebar-primary": "0 0% 98%",
-    "--sidebar-primary-foreground": "240 5.9% 10%",
-    "--sidebar-accent": "240 3.7% 15.9%",
-    "--sidebar-accent-foreground": "240 4.8% 95.9%",
-    "--sidebar-border": "240 3.7% 15.9%",
-    "--sidebar-ring": "217.2 91.2% 59.8%",
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config

@@ -15,7 +15,7 @@ export function getOctokit() {
       timeout: 15_000,
     },
     throttle: {
-      onRateLimit: (retryAfter, options, octokit, retryCount) => {
+      onRateLimit: (retryAfter: number, options: any, octokit: any, retryCount: number) => {
         console.warn(
           "[octokit] rate limit hit for %s %s. retrying in %s sec (retry #%s)",
           options.method,
@@ -25,7 +25,7 @@ export function getOctokit() {
         )
         return retryCount < 1
       },
-      onAbuseLimit: (retryAfter, options) => {
+      onAbuseLimit: (retryAfter: number, options: any) => {
         console.warn(
           "[octokit] abuse limit triggered for %s %s. backing off for %s sec",
           options.method,

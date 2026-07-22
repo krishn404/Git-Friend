@@ -503,9 +503,9 @@ ${customInstructions ? `\n\nUser Custom Instructions:\n${customInstructions}` : 
 
 
 // Initialize Groq (singleton ok in route scope)
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+const groq = process.env.GROQ_API_KEY ? new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+}) : null
 
 // Keep a single Octokit instance for lightweight calls still used here
 const octokit = new Octokit({
@@ -639,6 +639,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check for required API keys
+    if (!groq) {
+      return NextResponse.json({ 
+        error: "README generation service is not configured (GROQ_API_KEY missing)" 
+      }, { status: 503 })
+    }
+
     // Accept 'force' to bypass cache and always regenerate
     const { repoUrl, customInstructions, force, stream: useStream } = await req.json()
 
