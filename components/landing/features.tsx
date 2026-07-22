@@ -1,200 +1,140 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { Card, CardContent } from '@/components/ui/card'
 import { FileText, Github } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Card, CardContent } from '@/components/ui/card'
 import { FcGoogle } from 'react-icons/fc'
 
-const PHRASES = ['Describe your Git issue', 'AI responds with exact commands']
-const PHRASE_DURATION_MS = 2500
+const features = [
+  {
+    title: 'Dev-Controlled',
+    subtitle: 'Every command. Every commit. Yours.',
+    content: '100%'
+  },
+  {
+    title: 'Secure OAuth',
+    subtitle: 'Google and GitHub login only. No tokens.',
+    icon: 'oauth'
+  },
+  {
+    title: 'Fast by Design',
+    subtitle: 'Low-latency streaming responses optimized for developers.',
+    icon: 'fast'
+  }
+]
 
-function ScribbleCircle() {
-  return (
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      viewBox="0 0 260 110"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <motion.ellipse
-        cx="130" cy="55" rx="112" ry="44"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-        className="text-foreground/25"
-        pathLength="1"
-        strokeDasharray="1"
-        initial={{ strokeDashoffset: 1 }}
-        animate={{ strokeDashoffset: 0 }}
-        transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}
-        style={{ transform: 'rotate(-4deg)', transformOrigin: '130px 55px' }}
-      />
-      <motion.ellipse
-        cx="132" cy="57" rx="118" ry="47"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-        fill="none"
-        strokeDasharray="3 7"
-        className="text-foreground/12"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 1.2 }}
-        style={{ transform: 'rotate(3deg)', transformOrigin: '130px 55px' }}
-      />
-    </svg>
-  )
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5 }
+  }
 }
 
 export function Features() {
-  const [phraseIndex, setPhraseIndex] = useState(0)
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setPhraseIndex((i) => (i + 1) % PHRASES.length)
-    }, PHRASE_DURATION_MS)
-    return () => clearInterval(id)
-  }, [])
-
   return (
-    <section className="bg-gray-50 py-16 md:py-32 dark:bg-transparent">
-      <div className="mx-auto max-w-3xl lg:max-w-5xl px-6">
-        <div className="relative z-10 grid grid-cols-6 gap-3">
+    <section className="py-16 md:py-32 bg-background">
+      <div className="mx-auto max-w-5xl px-6">
+        {/* 4-card grid - monochrome, minimal */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          variants={staggerContainer}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
+          {/* Card 1: Dev-Controlled */}
+          <motion.div variants={itemVariants}>
+            <Card className="h-full">
+              <CardContent className="pt-8 pb-8 text-center flex flex-col justify-between h-full">
+                <div>
+                  <p className="text-5xl font-bold text-foreground">100%</p>
+                  <h3 className="text-lg font-semibold text-foreground mt-4">Dev-Controlled</h3>
+                  <p className="text-sm text-muted-foreground mt-2">Every command. Every commit. Yours.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          {/* ─── Card 1: 100% Dev-Controlled ─── */}
-          <Card className="relative col-span-full flex overflow-hidden lg:col-span-2">
-            <CardContent className="relative m-auto pt-6 w-full flex flex-col items-center">
-              <div className="relative h-28 w-full flex items-center justify-center">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="relative w-64 h-full">
-                    <ScribbleCircle />
+          {/* Card 2: Secure OAuth */}
+          <motion.div variants={itemVariants}>
+            <Card className="h-full">
+              <CardContent className="pt-8 pb-8 text-center flex flex-col items-center justify-center gap-6">
+                <div className="flex items-center justify-center gap-4">
+                  <Github className="h-8 w-8 text-foreground/70" strokeWidth={1.5} />
+                  <FcGoogle className="h-8 w-8" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Secure OAuth</h3>
+                  <p className="text-sm text-muted-foreground mt-2">Google and GitHub login only. No tokens.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Card 3: Fast by Design */}
+          <motion.div variants={itemVariants}>
+            <Card className="h-full">
+              <CardContent className="pt-8 pb-8 text-center">
+                <div className="mb-6 h-12 flex items-center justify-center">
+                  <p className="text-sm font-medium text-muted-foreground">⚡ Instant responses</p>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Fast by Design</h3>
+                  <p className="text-sm text-muted-foreground mt-2">Low-latency streaming optimized for developers.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Card 4: README in Seconds - full width */}
+          <motion.div variants={itemVariants} className="md:col-span-2">
+            <Card className="h-full">
+              <CardContent className="pt-8 pb-8">
+                <div className="grid md:grid-cols-2 gap-8">
+                  {/* Left side */}
+                  <div className="flex flex-col justify-center space-y-4">
+                    <div>
+                      <FileText className="h-8 w-8 text-foreground/70 mb-4" strokeWidth={1.5} />
+                      <h3 className="text-lg font-semibold text-foreground">README in Seconds</h3>
+                      <p className="text-sm text-muted-foreground mt-2">AI-generated markdown with GitHub-style formatting. Edit, preview, and ship instantly.</p>
+                    </div>
+                  </div>
+
+                  {/* Right side - code preview */}
+                  <div className="bg-muted border border-border rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+                      <span className="h-2 w-2 rounded-full bg-foreground/30" />
+                      <span className="h-2 w-2 rounded-full bg-foreground/30" />
+                      <span className="h-2 w-2 rounded-full bg-foreground/30" />
+                      <span className="ml-2 text-xs font-mono text-muted-foreground">README.md</span>
+                    </div>
+                    <div className="p-4 font-mono text-xs leading-relaxed text-foreground/70 space-y-1">
+                      <div># My Project</div>
+                      <div className="text-muted-foreground"># AI-powered Git workflows</div>
+                      <div className="mt-3">## Install</div>
+                      <div className="text-foreground">npm install gitfriend</div>
+                      <div className="mt-3">## Usage</div>
+                      <div className="text-foreground">gitfriend chat --repo .</div>
+                    </div>
                   </div>
                 </div>
-                <span className="relative z-10 text-[5rem] font-black tracking-tighter leading-none text-foreground select-none">
-                  100<span className="text-foreground/30 text-[3.5rem]">%</span>
-                </span>
-              </div>
-              <div className="mt-6 text-center">
-                <h2 className="text-xl font-extrabold tracking-tight text-foreground">
-                  Dev-Controlled
-                </h2>
-                <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground font-medium">
-                  Every command. Every commit. Yours.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ─── Card 2: Secure OAuth ─── */}
-          <Card className="relative col-span-full overflow-hidden sm:col-span-3 lg:col-span-2">
-            <CardContent className="pt-6">
-              <div className="relative mx-auto flex aspect-square size-32 items-center justify-center gap-3 rounded-full border before:absolute before:-inset-2 before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
-                <Github className="h-11 w-11 text-foreground/60" strokeWidth={1.5} />
-                <FcGoogle className="h-11 w-11" />
-              </div>
-              <div className="mt-6 space-y-1 text-center">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-foreground">
-                  Secure OAuth Access
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Google and GitHub login only. No personal access tokens.
-                  Scoped permissions by default.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ─── Card 3: Fast by Design ─── */}
-          <Card className="relative col-span-full overflow-hidden sm:col-span-3 lg:col-span-2">
-            <CardContent className="pt-6">
-              <div className="min-h-[7rem] flex items-center justify-center">
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.p
-                    key={PHRASES[phraseIndex]}
-                    className="text-sm font-medium text-foreground/50 tracking-wide text-center"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.35, ease: 'easeOut' }}
-                  >
-                    {PHRASES[phraseIndex]}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
-              <div className="mt-14 space-y-1 text-center">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-foreground">
-                  Fast by Design
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Low-latency streaming responses optimized for real developer workflows.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ─── Card 4: README in Seconds — full width ─── */}
-          <Card className="relative col-span-full overflow-hidden">
-            <CardContent className="grid pt-6 sm:grid-cols-3 gap-6">
-
-              {/* Left: icon + text */}
-              <div className="relative z-10 flex flex-col justify-between space-y-8 col-span-1">
-                <div className="relative flex aspect-square size-12 rounded-full border before:absolute before:-inset-2 before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
-                  <FileText className="m-auto size-5 text-foreground/60" strokeWidth={1} />
-                </div>
-                <div className="space-y-1.5">
-                  <h2 className="text-xs font-bold uppercase tracking-widest text-foreground">
-                    README in Seconds
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    AI-generated markdown with GitHub-style formatting. Edit,
-                    preview, and ship instantly.
-                  </p>
-                </div>
-              </div>
-
-              {/* Right: code window — spans 2 cols */}
-              <div className="relative col-span-2 -mb-6 -mr-6 mt-0 h-fit overflow-hidden border-l border-t border-border bg-muted/30 rounded-tl-xl">
-                <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
-                  <span className="size-2 rounded-full bg-foreground/15" />
-                  <span className="size-2 rounded-full bg-foreground/15" />
-                  <span className="size-2 rounded-full bg-foreground/15" />
-                  <span className="ml-2 font-mono text-[10px] text-muted-foreground tracking-wider">README.md</span>
-                </div>
-                <div className="relative overflow-hidden p-4 font-mono text-[12px] leading-relaxed text-foreground/70">
-                  <div className="absolute inset-0 z-10 bg-gradient-to-t from-background/90 via-transparent to-transparent pointer-events-none" />
-                  {[
-                    '# 🚀 My Project',
-                    '',
-                    '> AI-powered Git workflows for modern developers.',
-                    '',
-                    '## Install',
-                    '',
-                    'npm install gitfriend',
-                    '',
-                    '## Usage',
-                    '',
-                    'gitfriend chat --repo .',
-                  ].map((line, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.07, duration: 0.2 }}
-                      className={`mb-0.5 ${line === '' ? 'h-3' : ''} ${line.startsWith('#') ? 'text-foreground font-semibold' : ''} ${line.startsWith('>') ? 'text-muted-foreground italic' : ''}`}
-                    >
-                      {line}
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-            </CardContent>
-          </Card>
-
-        </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   )

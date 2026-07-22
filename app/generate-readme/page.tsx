@@ -389,8 +389,7 @@ export default function GenerateReadme() {
                     your project does, why it exists, and how to use it.
                   </p>
 
-                  <div className="relative mb-6 group">
-                    <div className="absolute inset-0 rounded-md -m-1 bg-gradient-to-r from-[hsl(var(--readme-primary))/0] via-[hsl(var(--readme-primary))/50] to-[hsl(var(--readme-primary))/0] opacity-0 group-hover:opacity-100 transition-opacity blur-md"></div>
+                  <div className="relative mb-6">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--readme-text-muted))]">
                       <Github className="h-5 w-5" />
                     </div>

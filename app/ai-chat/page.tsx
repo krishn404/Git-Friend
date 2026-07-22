@@ -237,8 +237,8 @@ export default function AIChat() {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-[#f7f7f5] text-zinc-900">
-        <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/90 backdrop-blur">
+      <div className="flex min-h-screen flex-col bg-background text-foreground">
+        <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
           <div className="mx-auto w-full max-w-[960px] px-4">
             <Navbar />
           </div>
@@ -256,13 +256,13 @@ export default function AIChat() {
                 {!hasMessages ? (
                   <div className="flex flex-col items-center justify-center gap-8 mt-[10%]">
                     <div className="space-y-3 text-center">
-                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500">
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                         Git Friend Chat
                       </p>
-                      <h1 className="text-xl font-semibold text-zinc-900 sm:text-2xl">
+                      <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
                         Ask anything about Git or GitHub.
                       </h1>
-                      <p className="max-w-xl text-sm text-zinc-600">
+                      <p className="max-w-xl text-sm text-muted-foreground">
                         Get step-by-step guidance, conflict resolutions, and best practices,
                         rendered with rich markdown, code blocks, and live streaming.
                       </p>
@@ -273,10 +273,10 @@ export default function AIChat() {
                         ? Array.from({ length: 4 }).map((_, i) => (
                             <div
                               key={i}
-                              className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+                              className="rounded-2xl border border-border bg-card p-4"
                             >
-                              <div className="h-4 w-3/4 animate-pulse rounded-md bg-zinc-200" />
-                              <div className="mt-2 h-3 w-1/2 animate-pulse rounded-md bg-zinc-100" />
+                              <div className="h-4 w-3/4 animate-pulse rounded-md bg-muted" />
+                              <div className="mt-2 h-3 w-1/2 animate-pulse rounded-md bg-muted/50" />
                             </div>
                           ))
                         : suggestions.map((suggestion) => (
@@ -284,12 +284,12 @@ export default function AIChat() {
                               key={suggestion}
                               type="button"
                               onClick={() => setInput(suggestion)}
-                              className="group rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+                              className="group rounded-2xl border border-border bg-card p-4 text-left transition hover:border-foreground/30 hover:bg-muted/20"
                             >
-                              <p className="text-sm font-medium text-zinc-900 group-hover:text-zinc-950">
+                              <p className="text-sm font-medium text-foreground group-hover:text-foreground">
                                 {suggestion}
                               </p>
-                              <p className="mt-1 text-xs text-zinc-500">
+                              <p className="mt-1 text-xs text-muted-foreground">
                                 Click to prefill the prompt and send.
                               </p>
                             </button>
@@ -337,7 +337,7 @@ export default function AIChat() {
                               <div className="flex justify-end">
                                 <MessageContent
                                   markdown={false}
-                                  className="max-w-[70%] rounded-2xl border border-zinc-200 bg-zinc-100 px-4 py-2 text-sm text-zinc-900 shadow-sm"
+                                  className="max-w-[70%] rounded-2xl border border-border bg-muted px-4 py-2 text-sm text-foreground"
                                 >
                                   {message.content}
                                 </MessageContent>
@@ -346,16 +346,16 @@ export default function AIChat() {
                               <MessageContent
                                 markdown
                                 isStreaming={message.isStreaming}
-                                className="border-transparent bg-transparent px-0 py-0 text-zinc-900"
+                                className="border-transparent bg-transparent px-0 py-0 text-foreground"
                               >
                                 {message.content}
                               </MessageContent>
                             )}
                             {message.role === "assistant" && (
-                              <MessageActions className="mt-1 text-[11px] text-zinc-500">
+                              <MessageActions className="mt-1 text-[11px] text-muted-foreground">
                                 <MessageAction
                                   tooltip={copiedId === message.id ? "Copied" : "Copy message"}
-                                  className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 hover:bg-zinc-100 hover:text-zinc-800"
+                                  className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 hover:bg-muted hover:text-foreground"
                                   onClick={() => handleCopy(message.id, message.content)}
                                 >
                                   <Copy className="h-3 w-3" />
@@ -364,7 +364,7 @@ export default function AIChat() {
                                 {isLastAssistant && (
                                   <MessageAction
                                     tooltip="Regenerate response"
-                                    className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 hover:bg-zinc-100 hover:text-zinc-800"
+                                    className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 hover:bg-muted hover:text-foreground"
                                     onClick={handleRegenerate}
                                   >
                                     <RefreshCw className="h-3 w-3" />
@@ -385,10 +385,10 @@ export default function AIChat() {
           </div>
 
           {/* Floating sticky input bar */}
-          <div className="fixed inset-x-0 bottom-0 z-20 bg-[#f7f7f5]">
+          <div className="fixed inset-x-0 bottom-0 z-20 bg-background">
             <div className="mx-auto w-full max-w-[960px] px-4 pb-5 pt-3">
               <div className="mx-auto flex w-full max-w-[680px] flex-col items-stretch gap-2">
-                <div className="rounded-[24px] border border-zinc-200 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+                <div className="rounded-[24px] border border-border bg-card shadow-sm">
                   <ChatPromptInput
                     value={input}
                     onChange={setInput}
@@ -399,7 +399,7 @@ export default function AIChat() {
                   />
                 </div>
                 {hasMessages && (
-                  <p className="text-center text-[12px] text-zinc-500">
+                  <p className="text-center text-[12px] text-muted-foreground">
                     AI can make mistakes. Please double-check responses.
                   </p>
                 )}
@@ -412,7 +412,7 @@ export default function AIChat() {
               <button
                 type="button"
                 onClick={scrollToBottomSmooth}
-                className="pointer-events-auto rounded-full border border-zinc-300 bg-white/90 px-3 py-1 text-xs text-zinc-700 shadow-sm hover:bg-zinc-50"
+                className="pointer-events-auto rounded-full border border-border bg-card/90 px-3 py-1 text-xs text-foreground shadow-sm hover:bg-muted"
               >
                 Scroll to latest
               </button>

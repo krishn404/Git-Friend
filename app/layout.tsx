@@ -54,8 +54,8 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${playfair.variable} font-sans`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="bg-background">
+      <body className={`${inter.variable} ${playfair.variable} font-sans bg-background text-foreground`} suppressHydrationWarning>
         <GitHubAuthProvider>
           <AuthProvider>
             <ThemeProvider
