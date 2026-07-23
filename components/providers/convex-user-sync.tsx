@@ -1,24 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
-import { useMutation } from "convex/react";
-import { useAuth } from "@/context/auth-context";
-import { api } from "@/convex/_generated/api";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
+// Dynamically import the actual sync component to defer Convex hook usage
+const ConvexUserSyncImpl = dynamic(
+  () => import("./convex-user-sync-impl").then(mod => ({ default: mod.ConvexUserSyncImpl })),
+  { ssr: false }
+);
 
 export function ConvexUserSync() {
-  const { user } = useAuth();
-  const upsertUser = useMutation(api.users.upsertFromAuth);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    setMounted(true);
+  }, []);
 
-    void upsertUser({
-      provider: "google",
-      name: user.displayName ?? undefined,
-      email: user.email ?? undefined,
-      avatar: user.photoURL ?? undefined,
-    });
-  }, [user, upsertUser]);
+  if (!mounted) return null;
 
-  return null;
+  return <ConvexUserSyncImpl />;
 }
