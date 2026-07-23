@@ -67,7 +67,7 @@ export function MessageContent({
   return (
     <div
       className={cn(
-        "px-4 py-3 rounded-2xl bg-card text-card-foreground border border-border",
+        "px-4 py-3 rounded-2xl bg-card text-card-foreground border border-border/80 shadow-[0_1px_2px_hsl(var(--foreground)/4%)]",
         className,
       )}
       {...props}

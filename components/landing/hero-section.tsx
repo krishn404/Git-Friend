@@ -9,7 +9,7 @@ import AiChatDemo from '@/components/ui/chat'
 
 export function HeroSection() {
   return (
-    <section className="relative pt-20 sm:pt-28 pb-12 overflow-hidden">
+    <section className="relative pt-28 sm:pt-36 pb-16 overflow-hidden">
       <div className="absolute inset-0 -z-10">
         <svg className="h-full w-full opacity-30 dark:opacity-10" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -60,9 +60,7 @@ export function HeroSection() {
             variants={fadeInUp}
             className="mb-6 text-4xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50 sm:text-5xl lg:text-6xl text-balance"
           >
-            <span className="bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-600 dark:from-neutral-50 dark:via-neutral-200 dark:to-neutral-300 bg-clip-text text-transparent">
-              Ask AI About
-            </span>
+            <span>Ask AI About</span>
             <br />
             <span className="text-neutral-900 dark:text-neutral-50">Git & GitHub</span>
           </motion.h1>
@@ -81,7 +79,7 @@ export function HeroSection() {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 href="/ai-chat"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 px-6 py-3 text-sm font-medium transition-all hover:shadow-xl hover:shadow-neutral-900/20"
+                className="premium-button inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-3 text-sm font-medium shadow-[inset_0_1px_0_hsl(var(--primary-foreground)/22%)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
               >
                 Start Chatting
                 <ArrowRight className="h-4 w-4" />
@@ -90,7 +88,7 @@ export function HeroSection() {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <button
               suppressHydrationWarning
-              className="inline-flex items-center justify-center rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent text-neutral-900 dark:text-neutral-50 px-6 py-3 text-sm font-medium transition-all hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-card text-foreground px-6 py-3 text-sm font-medium transition-all hover:-translate-y-0.5 hover:bg-accent"
             >
               Learn More
             </button>

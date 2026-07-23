@@ -63,7 +63,7 @@ export function CodeSnippet({ code, language = "bash", showLineNumbers = false, 
                 className="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
                 onClick={copyToClipboard}
               >
-                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-4 w-4 text-foreground" /> : <Copy className="h-4 w-4" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
