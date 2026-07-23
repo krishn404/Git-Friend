@@ -2,12 +2,17 @@
 
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
-import { Copy, RefreshCw } from "lucide-react"
+import { Menu, X } from "lucide-react"
+import { useQuery, useMutation } from "convex/react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Navbar } from "@/components/ui/navbar"
-import { Message, MessageAction, MessageActions, MessageContent } from "@/components/ui/message"
 import { ChatPromptInput } from "@/components/chat/chat-prompt-input"
+import { ChatMessage } from "@/components/chat/chat-message"
+import { ChatHistorySidebar } from "@/components/chat/chat-history-sidebar"
+import { Button } from "@/components/ui/button"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 
 type ChatMessage = {
   id: string
@@ -29,12 +34,25 @@ export default function AIChat() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<string[]>(FALLBACK_SUGGESTIONS)
   const [suggestionsLoading, setSuggestionsLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeSessionId, setActiveSessionId] = useState<Id<"chatSessions"> | null>(null)
   const chatRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Convex mutations and queries
+  const sessions = useQuery(api.chatSessions.listForUser)
+  const createSession = useMutation(api.chatSessions.create)
+  const addMessage = useMutation(api.chatMessages.add)
+  const touchSession = useMutation(api.chatSessions.touch)
+  
+  // Get messages for active session
+  const sessionMessages = useQuery(
+    activeSessionId ? api.chatMessages.listForSession : undefined,
+    activeSessionId ? { chatSessionId: activeSessionId } : undefined
+  )
 
   const hasMessages = messages.length > 0
 
@@ -89,8 +107,9 @@ export default function AIChat() {
     userContent: string
     history: ChatMessage[]
     assistantId: string
+    sessionId: Id<"chatSessions">
   }) => {
-    const { userContent, history, assistantId } = opts
+    const { userContent, history, assistantId, sessionId } = opts
 
     try {
       const controller = new AbortController()
@@ -152,11 +171,24 @@ export default function AIChat() {
         console.error("Chat request failed", error)
       }
     } finally {
-      setMessages((prev) =>
-        prev.map((msg) =>
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
           msg.id === assistantId ? { ...msg, isStreaming: false } : msg,
-        ),
-      )
+        )
+
+        // Save assistant message to Convex
+        const assistantMsg = updated.find((m) => m.id === assistantId)
+        if (assistantMsg && assistantMsg.content && sessionId) {
+          void addMessage({
+            chatSessionId: sessionId,
+            role: "assistant",
+            content: assistantMsg.content,
+          })
+          void touchSession({ sessionId })
+        }
+
+        return updated
+      })
       setIsStreaming(false)
       abortControllerRef.current = null
     }
@@ -167,32 +199,53 @@ export default function AIChat() {
     const trimmed = input.trim()
     if (!trimmed || isStreaming) return
 
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: trimmed,
+    try {
+      // Create a new session if one doesn't exist
+      let sessionId = activeSessionId
+      if (!sessionId) {
+        sessionId = await createSession({
+          title: trimmed.slice(0, 50), // Use first message as title
+        })
+        setActiveSessionId(sessionId)
+      }
+
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: trimmed,
+      }
+      const assistantId = `assistant-${Date.now()}`
+      const assistantMessage: ChatMessage = {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        isStreaming: true,
+      }
+
+      const history = [...messages, userMessage]
+
+      // Save user message to Convex
+      await addMessage({
+        chatSessionId: sessionId,
+        role: "user",
+        content: trimmed,
+      })
+
+      setMessages((prev) => [...prev, userMessage, assistantMessage])
+      setInput("")
+      setIsStreaming(true)
+      setAutoScroll(true)
+      setShowScrollToBottom(false)
+
+      await streamChat({ userContent: trimmed, history, assistantId, sessionId })
+    } catch (error) {
+      console.error("Failed to send message:", error)
+      setIsStreaming(false)
     }
-    const assistantId = `assistant-${Date.now()}`
-    const assistantMessage: ChatMessage = {
-      id: assistantId,
-      role: "assistant",
-      content: "",
-      isStreaming: true,
-    }
-
-    const history = [...messages, userMessage]
-
-    setMessages((prev) => [...prev, userMessage, assistantMessage])
-    setInput("")
-    setIsStreaming(true)
-    setAutoScroll(true)
-    setShowScrollToBottom(false)
-
-    await streamChat({ userContent: trimmed, history, assistantId })
   }
 
   const handleRegenerate = async () => {
-    if (isStreaming || messages.length < 2) return
+    if (isStreaming || messages.length < 2 || !activeSessionId) return
 
     const lastAssistantIndex = [...messages].reverse().findIndex((m) => m.role === "assistant")
     if (lastAssistantIndex === -1) return
@@ -216,35 +269,64 @@ export default function AIChat() {
     setAutoScroll(true)
     setShowScrollToBottom(false)
 
-    await streamChat({ userContent, history, assistantId })
-  }
-
-  const handleCopy = async (messageId: string, content: string) => {
-    try {
-      await navigator.clipboard.writeText(content)
-      setCopiedId(messageId)
-      setTimeout(() => {
-        setCopiedId((current) => (current === messageId ? null : current))
-      }, 1800)
-    } catch (error) {
-      console.error("Failed to copy message", error)
-    }
+    await streamChat({ userContent, history, assistantId, sessionId: activeSessionId })
   }
 
   const handleStop = () => {
     abortControllerRef.current?.abort()
   }
 
+  const handleNewChat = () => {
+    setActiveSessionId(null)
+    setMessages([])
+    setInput("")
+    setSidebarOpen(false)
+  }
+
+  const handleSelectSession = (sessionId: Id<"chatSessions">) => {
+    setActiveSessionId(sessionId)
+    setMessages([])
+    setSidebarOpen(false)
+  }
+
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen flex-col bg-background text-foreground">
         <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
-          <div className="mx-auto w-full max-w-[960px] px-4">
-            <Navbar />
+          <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 lg:hidden"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+            <div className="flex-1">
+              <Navbar />
+            </div>
           </div>
         </header>
 
-        <main className="flex flex-1 flex-col">
+        <main className="flex flex-1 flex-row overflow-hidden">
+          {/* Sidebar - mobile drawer or desktop sidebar */}
+          {sidebarOpen && (
+            <ChatHistorySidebar
+              activeSessionId={activeSessionId}
+              onSelectSession={handleSelectSession}
+              onNewChat={handleNewChat}
+              className="hidden lg:flex"
+            />
+          )}
+
+          {/* Mobile overlay - closes sidebar when selecting session */}
+          {sidebarOpen && (
+            <div
+              className="fixed inset-0 z-10 bg-black/50 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+
           {/* Scrollable message area */}
           <div
             ref={chatRef}
@@ -297,84 +379,22 @@ export default function AIChat() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col space-y-4">
+                  <div className="flex flex-col">
                     {messages.map((message, index) => {
-                      const previous = messages[index - 1]
-                      const anchoredPrompt =
-                        message.role === "assistant" && previous?.role === "user"
-                          ? previous.content
-                          : undefined
-
                       const isLastAssistant =
                         message.role === "assistant" &&
                         index === messages.length - 1 &&
-                        previous?.role === "user"
-
-                      const isUser = message.role === "user"
+                        messages[index - 1]?.role === "user"
 
                       return (
-                        <Message
+                        <ChatMessage
                           key={message.id}
-                          align={isUser ? "end" : "start"}
-                          className="px-0"
-                          avatar={
-                            !isUser ? (
-                              <img
-                                src="/favicon.ico"
-                                alt="Git Friend"
-                                className="h-7 w-7"
-                              />
-                            ) : undefined
-                          }
-                        >
-                          <div className="flex min-w-0 flex-1 flex-col gap-1">
-                            {anchoredPrompt && (
-                              <p className="text-[11px] font-normal leading-snug text-zinc-500">
-                                {anchoredPrompt}
-                              </p>
-                            )}
-                            {isUser ? (
-                              <div className="flex justify-end">
-                                <MessageContent
-                                  markdown={false}
-                                  className="max-w-[70%] rounded-2xl border border-border bg-muted px-4 py-2 text-sm text-foreground"
-                                >
-                                  {message.content}
-                                </MessageContent>
-                              </div>
-                            ) : (
-                              <MessageContent
-                                markdown
-                                isStreaming={message.isStreaming}
-                                className="border-transparent bg-transparent px-0 py-0 text-foreground"
-                              >
-                                {message.content}
-                              </MessageContent>
-                            )}
-                            {message.role === "assistant" && (
-                              <MessageActions className="mt-1 text-[11px] text-muted-foreground">
-                                <MessageAction
-                                  tooltip={copiedId === message.id ? "Copied" : "Copy message"}
-                                  className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 hover:bg-muted hover:text-foreground"
-                                  onClick={() => handleCopy(message.id, message.content)}
-                                >
-                                  <Copy className="h-3 w-3" />
-                                  <span>{copiedId === message.id ? "Copied" : "Copy"}</span>
-                                </MessageAction>
-                                {isLastAssistant && (
-                                  <MessageAction
-                                    tooltip="Regenerate response"
-                                    className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 hover:bg-muted hover:text-foreground"
-                                    onClick={handleRegenerate}
-                                  >
-                                    <RefreshCw className="h-3 w-3" />
-                                    <span>Regenerate</span>
-                                  </MessageAction>
-                                )}
-                              </MessageActions>
-                            )}
-                          </div>
-                        </Message>
+                          id={message.id}
+                          role={message.role}
+                          content={message.content}
+                          isStreaming={message.isStreaming}
+                          onRegenerate={isLastAssistant ? handleRegenerate : undefined}
+                        />
                       )
                     })}
                     <div ref={messagesEndRef} />

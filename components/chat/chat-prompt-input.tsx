@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import { ArrowUp, Square } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,15 @@ export function ChatPromptInput({
     value ? s.toLowerCase().includes(value.toLowerCase()) : true,
   )
 
+  // Auto-grow textarea on mount and when value changes
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = "auto"
+    const scrollHeight = el.scrollHeight
+    el.style.height = `${Math.min(scrollHeight, 160)}px`
+  }, [value])
+
   const handleInputResize: React.FormEventHandler<HTMLTextAreaElement> = (event) => {
     const el = event.currentTarget
     el.style.height = "auto"
@@ -39,7 +48,8 @@ export function ChatPromptInput({
   }
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
+    // Enter to submit, Shift+Enter for newline (following ChatGPT pattern)
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault()
       if (!isStreaming && value.trim()) {
         formRef.current?.requestSubmit()
@@ -61,19 +71,22 @@ export function ChatPromptInput({
   return (
     <form ref={formRef} onSubmit={onSubmit} className="w-full">
       <div className="w-full">
-        <div className="relative flex items-end gap-2 px-3 py-2">
+        <div className="relative flex items-end gap-2 px-3 py-2 sm:px-4 sm:py-3">
           <textarea
             ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onInput={handleInputResize}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything about Git or GitHub..."
+            onFocus={() => setShowSuggestions(value.length === 0)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            placeholder="Ask anything about Git or GitHub... (Shift + Enter for new line)"
             disabled={isStreaming}
             rows={1}
             className={cn(
               "flex-1 resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground",
-              "max-h-40 min-h-[24px] py-1 pr-10 outline-none",
+              "max-h-40 min-h-[24px] py-2 pr-10 outline-none transition-all",
+              "focus:ring-1 focus:ring-foreground/20 rounded-lg",
             )}
           />
 
