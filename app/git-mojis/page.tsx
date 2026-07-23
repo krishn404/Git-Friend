@@ -81,11 +81,11 @@ export default function GitMojis() {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col bg-background">
         <Navbar />
         
         <main className="flex-1">
-          <div className="container max-w-6xl mx-auto py-8">
+          <div className="container max-w-6xl mx-auto py-8 text-foreground">
             <div className="mb-8">
               <h1 className="text-3xl font-bold mb-2">Git Mojis</h1>
               <p className="text-muted-foreground">
