@@ -19,7 +19,7 @@ type Props = {
 
 export function MarkdownPreview({ markdown, onCopy, onDownload, onNew, onRegenerate, copied, canRegenerate }: Props) {
   return (
-    <Card className="relative shadow-lg border border-gray-300 readme-preview-container">
+    <Card className="relative readme-preview-container">
       <CardContent className="pt-6">
         <div className="absolute top-4 right-4 flex gap-2">
           <Button
@@ -91,14 +91,14 @@ export function MarkdownPreview({ markdown, onCopy, onDownload, onNew, onRegener
                     href &&
                     (href.startsWith("javascript:") || href.startsWith("data:") || href.startsWith("vbscript:"))
                   ) {
-                    return <span className="text-blue-600">{children}</span>
+                    return <span className="text-foreground underline">{children}</span>
                   }
                   return (
                     <a
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-foreground underline underline-offset-4 hover:text-muted-foreground"
                       {...props}
                     >
                       {children}

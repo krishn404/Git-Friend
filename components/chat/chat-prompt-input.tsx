@@ -72,7 +72,7 @@ export function ChatPromptInput({
             disabled={isStreaming}
             rows={1}
             className={cn(
-              "flex-1 resize-none bg-transparent text-sm leading-relaxed text-zinc-900 placeholder:text-zinc-500",
+              "flex-1 resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground",
               "max-h-40 min-h-[24px] py-1 pr-10 outline-none",
             )}
           />
@@ -80,7 +80,7 @@ export function ChatPromptInput({
           <Button
             type={isStreaming ? "button" : "submit"}
             size="icon"
-            className="mb-[2px] h-8 w-8 shrink-0 rounded-full border border-zinc-300 bg-zinc-900 text-zinc-50 hover:bg-zinc-800"
+            className="mb-[2px] h-8 w-8 shrink-0 rounded-full border border-primary-foreground/15 bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={!value.trim() && !isStreaming}
             onClick={isStreaming ? onStop : undefined}
           >

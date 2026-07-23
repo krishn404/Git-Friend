@@ -8,6 +8,7 @@ import AiChatDemo from '@/components/ui/chat'
 
 export function HeroSection() {
   return (
+<<<<<<< HEAD
     <section className="relative py-20 sm:py-32 overflow-hidden">
       {/* Subtle grid pattern background */}
       <div className="absolute inset-0 -z-10 opacity-[0.02] dark:opacity-[0.05]">

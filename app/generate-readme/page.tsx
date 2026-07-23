@@ -639,8 +639,8 @@ export default function GenerateReadme() {
               
               {applySuccess ? (
                 <div className="flex flex-col items-center justify-center py-6">
-                  <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">
-                    <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <Check className="h-6 w-6 text-foreground" />
                   </div>
                   <p className="text-lg font-medium">README Applied Successfully!</p>
                   <p className="text-sm text-muted-foreground mt-2">

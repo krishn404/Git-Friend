@@ -5,6 +5,8 @@ import { Inter, Playfair_Display } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/context/auth-context"
 import { GitHubAuthProvider } from "@/context/github-auth-context"
+import { ConvexClientProvider } from "@/components/providers/convex-client-provider"
+import { ConvexUserSync } from "@/components/providers/convex-user-sync"
 import { Analytics } from "@vercel/analytics/react"
 import { Toaster } from "@/components/ui/toaster"
 import { Suspense } from "react"
@@ -56,20 +58,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
       <body className={`${inter.variable} ${playfair.variable} font-sans bg-background text-foreground`} suppressHydrationWarning>
-        <GitHubAuthProvider>
-          <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <Suspense fallback={null}>{children}</Suspense>
-              <Toaster />
-            </ThemeProvider>
-          </AuthProvider>
-          <Analytics />
-        </GitHubAuthProvider>
+        <ConvexClientProvider>
+          <GitHubAuthProvider>
+            <AuthProvider>
+              <ConvexUserSync />
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="light"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <Suspense fallback={null}>{children}</Suspense>
+                <Toaster />
+              </ThemeProvider>
+            </AuthProvider>
+            <Analytics />
+          </GitHubAuthProvider>
+        </ConvexClientProvider>
       </body>
     </html>
   )
