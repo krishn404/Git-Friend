@@ -66,8 +66,9 @@ export const listForUser = query({
     const sessions = await ctx.db
       .query("chatSessions")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .order("desc")
       .collect();
+
+    sessions.sort((a, b) => b.updatedAt - a.updatedAt);
 
     return await Promise.all(
       sessions.map(async (session) => {

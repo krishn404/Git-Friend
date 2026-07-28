@@ -2,12 +2,16 @@
 
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
-import { Copy, RefreshCw } from "lucide-react"
+import { Copy, FolderGit2, RefreshCw } from "lucide-react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Navbar } from "@/components/ui/navbar"
 import { Message, MessageAction, MessageActions, MessageContent } from "@/components/ui/message"
 import { ChatPromptInput } from "@/components/chat/chat-prompt-input"
+import { ChatHistorySidebar } from "@/components/chat/chat-history-sidebar"
+import { RepoChip, RepoPicker, type RepoSelection } from "@/components/repo/repo-picker"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useChatPersistence, useSessionDetails, useSessionMessages, mapPersistedMessages } from "@/hooks/use-chat-persistence"
 
 type ChatMessage = {
   id: string
@@ -16,13 +20,6 @@ type ChatMessage = {
   isStreaming?: boolean
 }
 
-const FALLBACK_SUGGESTIONS = [
-  "Explain Git branching in simple terms.",
-  "How do I safely resolve merge conflicts?",
-  "Walk me through creating a pull request.",
-  "Show best practices for commit messages.",
-]
-
 export default function AIChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
@@ -30,13 +27,30 @@ export default function AIChat() {
   const [autoScroll, setAutoScroll] = useState(true)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [suggestions, setSuggestions] = useState<string[]>(FALLBACK_SUGGESTIONS)
+  const [suggestions, setSuggestions] = useState<string[]>([])
   const [suggestionsLoading, setSuggestionsLoading] = useState(true)
   const chatRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const [repo, setRepo] = useState<RepoSelection | null>(null)
+  const [repoPickerOpen, setRepoPickerOpen] = useState(false)
+  const { sessionId, setSessionId, loadSession, startNewSession, persistMessage } = useChatPersistence({
+    repoUrl: repo?.githubUrl,
+    repoFullName: repo?.fullName,
+  })
+  const persistedMessages = useSessionMessages(sessionId)
+  const sessionDetails = useSessionDetails(sessionId)
+  const activeRepo = repo ?? (sessionDetails?.repo
+    ? { fullName: sessionDetails.repo.githubRepoFullName, githubUrl: sessionDetails.repo.githubUrl }
+    : null)
 
   const hasMessages = messages.length > 0
+
+  useEffect(() => {
+    if (!isStreaming && sessionId && persistedMessages) {
+      setMessages(mapPersistedMessages(persistedMessages))
+    }
+  }, [isStreaming, persistedMessages, sessionId])
 
   // Fetch dynamic suggestions from dedicated Groq-powered endpoint
   useEffect(() => {
@@ -49,8 +63,9 @@ export default function AIChat() {
         if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
           setSuggestions(data.suggestions)
         }
-      } catch {
-        // Silently fall back to hardcoded suggestions
+      } catch (error) {
+        console.warn("Live suggestions are unavailable", error)
+        setSuggestions([])
       } finally {
         setSuggestionsLoading(false)
       }
@@ -91,6 +106,7 @@ export default function AIChat() {
     assistantId: string
   }) => {
     const { userContent, history, assistantId } = opts
+    let responseContent = ""
 
     try {
       const controller = new AbortController()
@@ -104,6 +120,7 @@ export default function AIChat() {
             ...history.map((m) => ({ role: m.role, content: m.content })),
             { role: "user", content: userContent },
           ],
+          repoUrl: activeRepo?.githubUrl,
         }),
         signal: controller.signal,
       })
@@ -136,6 +153,7 @@ export default function AIChat() {
               ""
 
             if (delta) {
+              responseContent += delta
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === assistantId ? { ...msg, content: msg.content + delta } : msg,
@@ -160,6 +178,8 @@ export default function AIChat() {
       setIsStreaming(false)
       abortControllerRef.current = null
     }
+
+    return responseContent
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -180,7 +200,7 @@ export default function AIChat() {
       isStreaming: true,
     }
 
-    const history = [...messages, userMessage]
+    const history = [...messages]
 
     setMessages((prev) => [...prev, userMessage, assistantMessage])
     setInput("")
@@ -188,7 +208,46 @@ export default function AIChat() {
     setAutoScroll(true)
     setShowScrollToBottom(false)
 
-    await streamChat({ userContent: trimmed, history, assistantId })
+    const sessionPromise = sessionId
+      ? Promise.resolve(sessionId)
+      : startNewSession(
+          activeRepo
+            ? { repoFullName: activeRepo.fullName, repoUrl: activeRepo.githubUrl }
+            : undefined,
+        )
+
+    void sessionPromise
+      .then((activeSessionId) => {
+        if (activeSessionId) return persistMessage("user", trimmed, activeSessionId)
+      })
+      .catch((error) => console.error("Could not save chat message", error))
+
+    const assistantContent = await streamChat({ userContent: trimmed, history, assistantId })
+    if (assistantContent) {
+      void sessionPromise
+        .then((activeSessionId) => {
+          if (activeSessionId) return persistMessage("assistant", assistantContent, activeSessionId)
+        })
+        .catch((error) => console.error("Could not save chat response", error))
+    }
+  }
+
+  const handleSelectSession = (id: Parameters<typeof loadSession>[0]) => {
+    setMessages([])
+    setRepo(null)
+    loadSession(id)
+  }
+
+  const handleNewChat = () => {
+    setSessionId(null)
+    setMessages([])
+    setRepo(null)
+  }
+
+  const handleSelectRepo = (selection: RepoSelection) => {
+    handleNewChat()
+    setRepo(selection)
+    setRepoPickerOpen(false)
   }
 
   const handleRegenerate = async () => {
@@ -237,14 +296,17 @@ export default function AIChat() {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-background text-foreground">
-        <header className="sticky top-0 z-30 border-b border-border/80 bg-background">
-          <div className="mx-auto w-full max-w-[960px] px-4">
-            <Navbar />
-          </div>
-        </header>
+      <div className="flex h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
+        <Navbar />
 
-        <main className="flex flex-1 flex-col">
+        <main className="flex min-h-0 flex-1 pt-16">
+          <ChatHistorySidebar
+            activeSessionId={sessionId}
+            onSelectSession={handleSelectSession}
+            onNewChat={handleNewChat}
+            className="hidden md:flex"
+          />
+          <section className="relative flex min-w-0 flex-1 flex-col">
           {/* Scrollable message area */}
           <div
             ref={chatRef}
@@ -252,7 +314,7 @@ export default function AIChat() {
             className="flex-1 overflow-y-auto"
           >
             <div className="mx-auto w-full max-w-[960px] px-4">
-              <div className="mx-auto w-full max-w-[680px] pb-36 pt-6">
+              <div className="mx-auto w-full max-w-[760px] pb-44 pt-8">
                 {!hasMessages ? (
                   <div className="flex flex-col items-center justify-center gap-8 mt-[10%]">
                     <div className="space-y-3 text-center">
@@ -297,7 +359,7 @@ export default function AIChat() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col space-y-4">
+                  <div className="flex flex-col space-y-6">
                     {messages.map((message, index) => {
                       const previous = messages[index - 1]
                       const anchoredPrompt =
@@ -384,10 +446,21 @@ export default function AIChat() {
             </div>
           </div>
 
-          {/* Floating sticky input bar */}
-          <div className="fixed inset-x-0 bottom-0 z-20 bg-background">
-            <div className="mx-auto w-full max-w-[960px] px-4 pb-5 pt-3">
-              <div className="mx-auto flex w-full max-w-[680px] flex-col items-stretch gap-2">
+          {/* Composer is pinned inside the chat pane, never over the sidebar or navbar. */}
+          <div className="absolute inset-x-0 bottom-0 z-20 border-t border-border/60 bg-background/95 backdrop-blur">
+            <div className="mx-auto w-full max-w-[760px] px-4 pb-5 pt-3">
+                <div className="mx-auto flex w-full max-w-[760px] flex-col items-stretch gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    {activeRepo ? <RepoChip fullName={activeRepo.fullName} onClear={handleNewChat} /> : <span />}
+                    <button
+                      type="button"
+                      onClick={() => setRepoPickerOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <FolderGit2 className="h-3.5 w-3.5" />
+                      {activeRepo ? "Change repository" : "Chat about a repository"}
+                    </button>
+                  </div>
                 <div className="rounded-[20px] border border-border bg-card shadow-[0_10px_30px_hsl(var(--foreground)/8%)]">
                   <ChatPromptInput
                     value={input}
@@ -408,7 +481,7 @@ export default function AIChat() {
           </div>
 
           {showScrollToBottom && (
-            <div className="pointer-events-none fixed bottom-28 left-0 right-0 flex justify-center">
+            <div className="pointer-events-none absolute inset-x-0 bottom-32 flex justify-center">
               <button
                 type="button"
                 onClick={scrollToBottomSmooth}
@@ -418,7 +491,17 @@ export default function AIChat() {
               </button>
             </div>
           )}
+          </section>
         </main>
+
+        <Dialog open={repoPickerOpen} onOpenChange={setRepoPickerOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Select a repository for this chat</DialogTitle>
+            </DialogHeader>
+            <RepoPicker onSelect={handleSelectRepo} actionLabel="Select" />
+          </DialogContent>
+        </Dialog>
       </div>
     </ProtectedRoute>
   )

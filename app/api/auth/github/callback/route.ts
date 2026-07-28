@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { GITHUB_OAUTH_CALLBACK_URL } from "@/lib/github-oauth"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -32,6 +33,8 @@ export async function GET(request: NextRequest) {
         client_id: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID,
         client_secret: process.env.GITHUB_CLIENT_SECRET,
         code,
+        // Must match the redirect_uri used in the authorization request.
+        redirect_uri: GITHUB_OAUTH_CALLBACK_URL,
       }),
     })
 

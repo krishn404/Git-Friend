@@ -69,19 +69,6 @@
   ::selection { background: hsl(var(--foreground) / 14%); }
 }
 
-@layer components {
-  .premium-button::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(115deg, transparent 35%, hsl(var(--primary-foreground) / 18%) 50%, transparent 65%);
-    transform: translateX(-125%);
-    transition: transform 560ms ease;
-  }
-  .premium-button:hover::after { transform: translateX(125%); }
-}
-
 /* Normalize legacy component helpers to the product palette. */
 .message-user { background-color: hsl(var(--primary)) !important; color: hsl(var(--primary-foreground)) !important; }
 .message-ai { background-color: hsl(var(--card)) !important; border-color: hsl(var(--border)) !important; }
@@ -100,7 +87,7 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 262.1 83.3% 57.8%;
+    --primary: 174 72% 32%;
     --primary-foreground: 210 20% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -112,15 +99,15 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 262.1 83.3% 57.8%;
+    --ring: 174 72% 32%;
     --radius: 0.5rem;
 
     /* Custom theme colors for README generator */
     --readme-bg: 255 100% 99%;
     --readme-card-bg: 255 100% 100%;
     --readme-border: 250 30% 90%;
-    --readme-primary: 262 83% 58%;
-    --readme-primary-hover: 262 83% 52%;
+    --readme-primary: 174 72% 32%;
+    --readme-primary-hover: 174 72% 26%;
     --readme-primary-foreground: 0 0% 100%;
     --readme-text: 240 10% 4%;
     --readme-text-muted: 240 5% 50%;
@@ -134,7 +121,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 262.1 83.3% 57.8%;
+    --primary: 174 66% 42%;
     --primary-foreground: 210 20% 98%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -146,14 +133,14 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 262.1 83.3% 57.8%;
+    --ring: 174 66% 42%;
 
     /* Custom theme colors for README generator - dark mode */
-    --readme-bg: 250 30% 8%;
-    --readme-card-bg: 250 30% 12%;
-    --readme-border: 250 30% 20%;
-    --readme-primary: 262 83% 58%;
-    --readme-primary-hover: 262 83% 65%;
+    --readme-bg: 180 12% 7%;
+    --readme-card-bg: 180 10% 10%;
+    --readme-border: 180 10% 20%;
+    --readme-primary: 174 66% 42%;
+    --readme-primary-hover: 174 66% 50%;
     --readme-primary-foreground: 0 0% 100%;
     --readme-text: 0 0% 98%;
     --readme-text-muted: 240 5% 75%;
@@ -473,12 +460,12 @@ html {
   padding: 0.2em 0.4em;
   border-radius: 0.25em;
   background-color: rgba(0, 0, 0, 0.05);
-  color: #6366f1;
+  color: #0f766e;
 }
 
 .dark .prose-sm code {
   background-color: rgba(255, 255, 255, 0.1);
-  color: #a5b4fc;
+  color: #5eead4;
 }
 
 .prose-sm pre {
@@ -503,7 +490,7 @@ html {
 
 /* Improve message styling */
 .message-user {
-  background-color: #8b5cf6 !important;
+  background-color: #0f766e !important;
   color: white !important;
 }
 
@@ -531,18 +518,18 @@ html {
 /* Improve inline code styling */
 .prose-sm code:not(pre code) {
   background-color: #f3f4f6;
-  color: #8b5cf6;
+  color: #0f766e;
   font-weight: 500;
 }
 
 .dark .prose-sm code:not(pre code) {
   background-color: #1f2937;
-  color: #a78bfa;
+  color: #5eead4;
 }
 
 /* Add styling for blockquotes */
 .prose-sm blockquote {
-  border-left: 3px solid #8b5cf6;
+  border-left: 3px solid #0f766e;
   padding-left: 1em;
   font-style: italic;
   margin: 1em 0;
@@ -807,7 +794,7 @@ html {
 
 /* Text gradient for headings */
 .text-gradient {
-  background: linear-gradient(to right, #8b5cf6, #6366f1);
+  background: linear-gradient(to right, #0f766e, #14b8a6);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

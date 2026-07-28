@@ -45,6 +45,9 @@ import { motion } from "framer-motion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useAuth } from "@/context/auth-context"
 import { useGitHubAuth } from "@/context/github-auth-context"
+import { RepoPicker, type RepoSelection } from "@/components/repo/repo-picker"
+import { ReadmeHistory } from "@/components/readme/readme-history"
+import { ReadmeSaver } from "@/components/readme/readme-saver"
 
 export default function GenerateReadme() {
   // Example repositories
@@ -83,6 +86,7 @@ export default function GenerateReadme() {
   const [branches, setBranches] = useState<string[]>([])
   const [isApplying, setIsApplying] = useState(false)
   const [applySuccess, setApplySuccess] = useState(false)
+  const [showRepoPicker, setShowRepoPicker] = useState(false)
   
   // Use GitHub auth context
   const { isConnected, accessToken, userInfo, connectGitHub, disconnectGitHub } = useGitHubAuth()
@@ -297,6 +301,12 @@ export default function GenerateReadme() {
     setRepoUrl(`https://github.com/${repo}`)
   }
 
+  const handleSelectRepo = (repo: RepoSelection) => {
+    setRepoUrl(repo.githubUrl)
+    setShowRepoPicker(false)
+    setError(null)
+  }
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A"
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -319,6 +329,7 @@ export default function GenerateReadme() {
     <ProtectedRoute>
       {guestTimerBar}
       <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors duration-300">
+        <ReadmeSaver markdown={generatedReadme} repoUrl={repoUrl} isGenerating={isGenerating} />
         <Navbar />
 
         {/* Main content */}
@@ -389,7 +400,7 @@ export default function GenerateReadme() {
                     your project does, why it exists, and how to use it.
                   </p>
 
-                  <div className="relative mb-6 group">
+                  <div className="relative mb-3 group">
                     <div className="absolute inset-0 rounded-md -m-1 bg-gradient-to-r from-[hsl(var(--readme-primary))/0] via-[hsl(var(--readme-primary))/50] to-[hsl(var(--readme-primary))/0] opacity-0 group-hover:opacity-100 transition-opacity blur-md"></div>
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--readme-text-muted))]">
                       <Github className="h-5 w-5" />
@@ -407,6 +418,12 @@ export default function GenerateReadme() {
                       }}
                       onKeyDown={handleKeyDown}
                     />
+                  </div>
+
+                  <div className="mb-6 flex justify-end">
+                    <Button variant="outline" size="sm" onClick={() => setShowRepoPicker(true)}>
+                      Browse your repositories
+                    </Button>
                   </div>
 
                   <div className="flex justify-end gap-2">
@@ -439,6 +456,17 @@ export default function GenerateReadme() {
                 </CardContent>
               </Card>
             </motion.div>
+
+            <div className="max-w-3xl mx-auto mb-10 rounded-xl border border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))] p-5">
+              <h2 className="mb-4 text-base font-medium">Your READMEs</h2>
+              <ReadmeHistory
+                onOpen={(_id, markdown, url) => {
+                  setRepoUrl(url)
+                  setGeneratedReadme(markdown)
+                  setRepoData(null)
+                }}
+              />
+            </div>
 
             {/* Example repositories */}
             {!generatedReadme && !isGenerating && (
@@ -708,6 +736,15 @@ export default function GenerateReadme() {
                   </DialogFooter>
                 </>
               )}
+            </DialogContent>
+          </Dialog>
+          <Dialog open={showRepoPicker} onOpenChange={setShowRepoPicker}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Select a repository</DialogTitle>
+                <DialogDescription>Browse connected GitHub repositories or paste a URL.</DialogDescription>
+              </DialogHeader>
+              <RepoPicker onSelect={handleSelectRepo} actionLabel="Select" />
             </DialogContent>
           </Dialog>
         </main>

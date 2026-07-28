@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { isConvexEnabled } from "@/lib/convex";
 
 export type PersistedChatMessage = {
   id: string;
@@ -18,6 +19,17 @@ type UseChatPersistenceOptions = {
 };
 
 export function useChatPersistence({ repoUrl, repoFullName }: UseChatPersistenceOptions) {
+  // This value is fixed for a client bundle. Keep chat fully usable before a
+  // Convex deployment is configured, with persistence simply unavailable.
+  if (!isConvexEnabled) {
+    return {
+      sessionId: null,
+      setSessionId: (_id: Id<"chatSessions"> | null) => undefined,
+      startNewSession: async () => undefined,
+      loadSession: (_id: Id<"chatSessions">) => undefined,
+      persistMessage: async () => undefined,
+    };
+  }
   const [sessionId, setSessionId] = useState<Id<"chatSessions"> | null>(null);
   const createSession = useMutation(api.chatSessions.create);
   const addMessage = useMutation(api.chatMessages.add);
@@ -25,15 +37,17 @@ export function useChatPersistence({ repoUrl, repoFullName }: UseChatPersistence
   const touchSession = useMutation(api.chatSessions.touch);
   const titleSetRef = useRef(false);
 
-  const startNewSession = useCallback(async () => {
+  const startNewSession = useCallback(async (repo?: { repoUrl?: string | null; repoFullName?: string | null }) => {
     setSessionId(null);
     titleSetRef.current = false;
 
-    const title = repoFullName ? `Chat: ${repoFullName}` : "New chat";
+    const sessionRepoFullName = repo?.repoFullName ?? repoFullName;
+    const sessionRepoUrl = repo?.repoUrl ?? repoUrl;
+    const title = sessionRepoFullName ? `Chat: ${sessionRepoFullName}` : "New chat";
     const id = await createSession({
       title,
-      githubRepoFullName: repoFullName ?? undefined,
-      githubUrl: repoUrl ?? undefined,
+      githubRepoFullName: sessionRepoFullName ?? undefined,
+      githubUrl: sessionRepoUrl ?? undefined,
     });
     setSessionId(id);
     return id;
@@ -75,6 +89,7 @@ export function useChatPersistence({ repoUrl, repoFullName }: UseChatPersistence
 }
 
 export function useSessionMessages(sessionId: Id<"chatSessions"> | null) {
+  if (!isConvexEnabled) return undefined;
   return useQuery(
     api.chatMessages.listForSession,
     sessionId ? { chatSessionId: sessionId } : "skip",
@@ -82,6 +97,7 @@ export function useSessionMessages(sessionId: Id<"chatSessions"> | null) {
 }
 
 export function useSessionDetails(sessionId: Id<"chatSessions"> | null) {
+  if (!isConvexEnabled) return undefined;
   return useQuery(
     api.chatSessions.getById,
     sessionId ? { sessionId } : "skip",

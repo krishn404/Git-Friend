@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { GITHUB_OAUTH_CALLBACK_URL } from "@/lib/github-oauth"
 
 interface GitHubAuthContextType {
   isConnected: boolean
@@ -47,8 +48,20 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
 
   const connectGitHub = () => {
     const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
-    const redirectUri = `${window.location.origin}/api/auth/github/callback`
+    const redirectUri = GITHUB_OAUTH_CALLBACK_URL
     const scope = "repo"
+
+    if (!clientId) {
+      console.error("GitHub OAuth is missing NEXT_PUBLIC_GITHUB_CLIENT_ID")
+      return
+    }
+
+    const authorizationUrl = new URL("https://github.com/login/oauth/authorize")
+    authorizationUrl.search = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope,
+    }).toString()
     
     const width = 600
     const height = 700
@@ -56,7 +69,7 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
     const top = window.screenY + (window.outerHeight - height) / 2
 
     window.open(
-      `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`,
+      authorizationUrl.toString(),
       "GitHub OAuth",
       `width=${width},height=${height},left=${left},top=${top}`
     )

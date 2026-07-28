@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Copy, ExternalLink, FileText } from "lucide-react";
 
@@ -9,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { isConvexEnabled } from "@/lib/convex";
 
 type ReadmeHistoryProps = {
   onOpen: (readmeId: Id<"readmes">, markdown: string, repoUrl: string) => void;
@@ -16,15 +18,40 @@ type ReadmeHistoryProps = {
 };
 
 export function ReadmeHistory({ onOpen, className }: ReadmeHistoryProps) {
-  const readmes = useQuery(api.readmes.listForUser);
+  if (!isConvexEnabled) {
+    return <p className={cn("text-sm text-muted-foreground", className)}>Connect Convex to save README history.</p>;
+  }
+  return <ReadmeHistoryEnabled onOpen={onOpen} className={className} />;
+}
 
-  if (readmes === undefined) {
+function ReadmeHistoryEnabled({ onOpen, className }: ReadmeHistoryProps) {
+  const readmes = useQuery(api.readmes.listForUser);
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (readmes !== undefined) {
+      setTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setTimedOut(true), 8_000);
+    return () => window.clearTimeout(timer);
+  }, [readmes]);
+
+  if (readmes === undefined && !timedOut) {
     return (
       <div className={cn("space-y-2", className)}>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
         ))}
       </div>
+    );
+  }
+
+  if (readmes === undefined) {
+    return (
+      <p className={cn("text-sm leading-relaxed text-muted-foreground", className)}>
+        README history is taking longer than expected. Check the Convex deployment and Firebase JWT configuration, then refresh.
+      </p>
     );
   }
 

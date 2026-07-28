@@ -1,9 +1,7 @@
-import { NextResponse } from "next/server"
-import { Groq } from "groq-sdk"
+import { NextResponse } from "next/server";
+import { Groq } from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 
 export async function GET() {
   try {
@@ -11,36 +9,35 @@ export async function GET() {
       messages: [
         {
           role: "system",
-          content:
-            "You are a helpful assistant. When asked for a JSON array, return ONLY the raw JSON array — no markdown, no code fences, no explanation.",
+          content: "You generate concise, useful Git and GitHub prompts. Return only valid JSON.",
         },
         {
           role: "user",
           content:
-            'Generate 4 short, diverse, interesting question suggestions a developer might ask about Git or GitHub. Return only a raw JSON array of 4 strings. Example: ["Question one?","Question two?","Question three?","Question four?"]',
+            'Generate four timely, diverse questions a developer could ask about Git or GitHub. Return exactly this JSON object shape: {"suggestions":["question one","question two","question three","question four"]}.',
         },
       ],
-      model: "openai/gpt-oss-120b",
-      temperature: 1.0, // Higher temp = more variety each load
-      max_completion_tokens: 200,
+      model: process.env.GROQ_SUGGESTIONS_MODEL ?? "llama-3.1-8b-instant",
+      temperature: 0.9,
+      max_completion_tokens: 120,
       stream: false,
-    })
+      response_format: { type: "json_object" },
+    });
 
-    const raw = completion.choices?.[0]?.message?.content ?? ""
+    const raw = completion.choices?.[0]?.message?.content ?? "";
+    const cleaned = raw.replace(/```[a-z]*\n?/gi, "").trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON object in response");
 
-    // Strip any accidental markdown fences
-    const cleaned = raw.replace(/```[a-z]*\n?/gi, "").trim()
+    const parsed = JSON.parse(match[0]) as { suggestions?: unknown };
+    const suggestions = parsed.suggestions;
+    if (!Array.isArray(suggestions) || suggestions.length === 0 || !suggestions.every((item) => typeof item === "string")) {
+      throw new Error("Invalid suggestions response");
+    }
 
-    // Extract JSON array
-    const match = cleaned.match(/\[[\s\S]*\]/)
-    if (!match) throw new Error("No JSON array in response")
-
-    const parsed = JSON.parse(match[0])
-    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Invalid suggestions array")
-
-    return NextResponse.json({ suggestions: parsed.slice(0, 4) })
-  } catch (error: any) {
-    console.error("Suggestions fetch failed:", error?.message)
-    return NextResponse.json({ suggestions: null }, { status: 500 })
+    return NextResponse.json({ suggestions: suggestions.slice(0, 4) });
+  } catch (error: unknown) {
+    console.error("Suggestions fetch failed:", error instanceof Error ? error.message : error);
+    return NextResponse.json({ suggestions: [], error: "Suggestions are temporarily unavailable" }, { status: 502 });
   }
 }

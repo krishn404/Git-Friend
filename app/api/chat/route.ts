@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { Groq } from "groq-sdk"
 import { scanRepository, type ScannedFile, type RepoAnalysis } from "@/lib/github"
 
+const repoContextCache = new Map<string, { value: string; expiresAt: number }>()
+const REPO_CONTEXT_TTL_MS = 5 * 60 * 1000
+
 // Initialize Groq
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -18,18 +21,27 @@ export async function POST(req: Request) {
         const match = repoUrl.match(/github\.com\/(.+?)\/(.+?)(?:\.git)?(?:\/)?$/)
         if (match) {
           const [, owner, repo] = match
-          const analysis = await scanRepository({
-            owner,
-            repo,
-            maxFiles: 100, // lighter scan for chat
-            maxFileSizeBytes: 192_000,
-            perFileCharLimit: 2500,
-          })
-          const kind = detectProjectKind(analysis)
-          const relevant = selectRelevantFiles(kind, analysis.files, 100)
-          const contextRaw = buildContextBlock(analysis, relevant)
-          const compressedContext = await summarizeIfNeeded(contextRaw, 12000)
-          repoContextBlock = `\n\n[Repository Context]\n${compressedContext}`
+          const cached = repoContextCache.get(repoUrl)
+          if (cached && cached.expiresAt > Date.now()) {
+            repoContextBlock = cached.value
+          } else {
+            const analysis = await scanRepository({
+              owner,
+              repo,
+              maxFiles: 30,
+              maxFileSizeBytes: 96_000,
+              perFileCharLimit: 1500,
+            })
+            const kind = detectProjectKind(analysis)
+            const relevant = selectRelevantFiles(kind, analysis.files, 30)
+            const contextRaw = buildContextBlock(analysis, relevant)
+            const compressedContext = await summarizeIfNeeded(contextRaw, 6000)
+            repoContextBlock = `\n\n[Repository Context]\n${compressedContext}`
+            repoContextCache.set(repoUrl, {
+              value: repoContextBlock,
+              expiresAt: Date.now() + REPO_CONTEXT_TTL_MS,
+            })
+          }
         }
       } catch (e) {
         // Non-fatal: continue without context
@@ -68,9 +80,9 @@ ${repoContextBlock}`,
           content: m.content || "",
         })),
       ],
-      model: "openai/gpt-oss-120b",
+      model: process.env.GROQ_CHAT_MODEL ?? "llama-3.1-8b-instant",
       temperature: 0.7,
-      max_completion_tokens: 4000, // Reduced to avoid rate limits
+      max_completion_tokens: 1600,
       top_p: 1,
       stream: true,
       stop: null,
