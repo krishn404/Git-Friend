@@ -53,3 +53,40 @@ export const getById = query({
     return { ...readme, repo };
   },
 });
+
+export const updateMarkdown = mutation({
+  args: { readmeId: v.id("readmes"), generatedMarkdown: v.string() },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    const readme = await ctx.db.get(args.readmeId);
+    if (!readme || readme.userId !== user._id) throw new Error("README not found");
+    await ctx.db.patch(args.readmeId, { generatedMarkdown: args.generatedMarkdown, updatedAt: Date.now() });
+  },
+});
+
+export const duplicate = mutation({
+  args: { readmeId: v.id("readmes") },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    const readme = await ctx.db.get(args.readmeId);
+    if (!readme || readme.userId !== user._id) throw new Error("README not found");
+    const now = Date.now();
+    return await ctx.db.insert("readmes", {
+      userId: readme.userId,
+      repoId: readme.repoId,
+      generatedMarkdown: readme.generatedMarkdown,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+export const remove = mutation({
+  args: { readmeId: v.id("readmes") },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    const readme = await ctx.db.get(args.readmeId);
+    if (!readme || readme.userId !== user._id) throw new Error("README not found");
+    await ctx.db.delete(args.readmeId);
+  },
+});

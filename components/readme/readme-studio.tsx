@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { motion } from "framer-motion"
 import { Streamdown } from "streamdown"
 import {
   Bold, Check, ChevronDown, Code2, Copy, Download, Eye, FileText, GripVertical,
   Heading, Italic, Link2, List, MoreHorizontal, Redo2, Table2, Trash2, Undo2,
-  Upload, Wand2, FileUp, ExternalLink, Plus, Image as ImageIcon,
+  Upload, Wand2, FileUp, ExternalLink, Plus, Maximize2, Minimize2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,12 +60,21 @@ export function ReadmeStudio({ markdown, onChange, onDownload, onCopy, copied, o
   const [selectedId, setSelectedId] = useState(blocks[0]?.id)
   const [history, setHistory] = useState<Block[][]>([])
   const [future, setFuture] = useState<Block[][]>([])
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const markdownRef = useRef<HTMLTextAreaElement | null>(null)
   const uploadRef = useRef<HTMLInputElement>(null)
   const serialised = useMemo(() => blocksToMarkdown(blocks), [blocks])
   const selected = blocks.find((block) => block.id === selectedId) || blocks[0]
 
   useEffect(() => { if (markdown !== serialised) setBlocks(markdownToBlocks(markdown)) }, [markdown]) // external generation/import remains the source of truth
+  useEffect(() => {
+    if (!isFullscreen) return
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setIsFullscreen(false) }
+    document.addEventListener("keydown", onKeyDown)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => { document.removeEventListener("keydown", onKeyDown); document.body.style.overflow = previousOverflow }
+  }, [isFullscreen])
 
   const commit = (next: Block[], track = true) => {
     if (track) { setHistory((current) => [...current.slice(-29), blocks]); setFuture([]) }
@@ -79,35 +89,37 @@ export function ReadmeStudio({ markdown, onChange, onDownload, onCopy, copied, o
   const insertSyntax = (before: string, after = "") => { const el = markdownRef.current; if (!el || !selected || selected.type !== "text") return; const start = el.selectionStart; const end = el.selectionEnd; const value = selected.markdown; updateBlock(selected.id, { markdown: value.slice(0, start) + before + value.slice(start, end) + after + value.slice(end) }); requestAnimationFrame(() => { el.focus(); el.selectionStart = start + before.length; el.selectionEnd = end + before.length }) }
   const importFile = (file?: File) => { if (!file) return; const reader = new FileReader(); reader.onload = () => { const value = String(reader.result || ""); onChange(value); setBlocks(markdownToBlocks(value)); setMode("design") }; reader.readAsText(file) }
 
-  return <section className="overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+  const canvasHeight = isFullscreen ? "h-[calc(100vh-72px)]" : "h-[680px]"
+  return <motion.section layout transition={{ layout: { duration: 0.32, ease: "easeInOut" } }} className={cn("overflow-hidden border border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))] shadow-2xl", isFullscreen ? "fixed inset-0 z-[100] rounded-none" : "rounded-2xl")}>
     <input ref={uploadRef} type="file" accept=".md,.markdown,text/markdown,text/plain" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
-    <header className="flex h-16 items-center justify-between border-b border-border px-4 sm:px-6">
-      <div className="flex rounded-lg border border-border bg-muted/40 p-1">
-        <button onClick={() => setMode("design")} className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", mode === "design" && "bg-background text-foreground shadow-sm")}><Eye className="h-4 w-4" />Design</button>
-        <button onClick={() => setMode("markdown")} className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", mode === "markdown" && "bg-background text-foreground shadow-sm")}><FileText className="h-4 w-4" />Markdown</button>
+    <header className="flex h-[72px] items-center justify-between border-b border-[hsl(var(--readme-border))] bg-zinc-950/30 px-4 sm:px-6">
+      <div className="flex rounded-xl border border-[hsl(var(--readme-border))] bg-zinc-950/40 p-1">
+        <button onClick={() => setMode("design")} className={cn("flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors", mode === "design" && "bg-[hsl(var(--readme-primary))] text-[hsl(var(--readme-primary-foreground))] shadow-lg shadow-[hsl(var(--readme-primary))/20]")}><Eye className="h-4 w-4" />Design</button>
+        <button onClick={() => setMode("markdown")} className={cn("flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors", mode === "markdown" && "bg-[hsl(var(--readme-primary))] text-[hsl(var(--readme-primary-foreground))] shadow-lg shadow-[hsl(var(--readme-primary))/20]")}><FileText className="h-4 w-4" />Markdown</button>
       </div>
       <div className="flex items-center gap-1 sm:gap-2">
         <Button variant="ghost" size="icon" onClick={undo} disabled={!history.length} aria-label="Undo"><Undo2 className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" onClick={redo} disabled={!future.length} aria-label="Redo"><Redo2 className="h-4 w-4" /></Button>
-        <Button variant="outline" size="sm" className="hidden sm:flex gap-2" onClick={() => uploadRef.current?.click()}><FileUp className="h-4 w-4" />Import</Button>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm" className="gap-2"><Download className="h-4 w-4" />Export<ChevronDown className="h-3 w-3" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={onDownload}>Download README.md</DropdownMenuItem><DropdownMenuItem onClick={onCopy}>{copied ? "Copied" : "Copy markdown"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        <Button variant="outline" size="sm" className="hidden gap-2 rounded-lg border-[hsl(var(--readme-border))] bg-zinc-900/70 font-medium sm:flex" onClick={() => uploadRef.current?.click()}><FileUp className="h-4 w-4" />Import</Button>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm" className="gap-2 rounded-lg bg-[hsl(var(--readme-primary))] font-semibold text-[hsl(var(--readme-primary-foreground))] hover:bg-[hsl(var(--readme-primary-hover))]"><Download className="h-4 w-4" />Export<ChevronDown className="h-3 w-3" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={onDownload}>Download README.md</DropdownMenuItem><DropdownMenuItem onClick={onCopy}>{copied ? "Copied" : "Copy markdown"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        <Button variant="ghost" size="icon" onClick={() => setIsFullscreen((value) => !value)} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>{isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More actions"><MoreHorizontal className="h-5 w-5" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={onNew}>New document</DropdownMenuItem>{onRegenerate && <DropdownMenuItem disabled={!canRegenerate} onClick={onRegenerate}>Regenerate README</DropdownMenuItem>}{onApply && <><DropdownMenuSeparator /><DropdownMenuItem onClick={onApply}><ExternalLink className="mr-2 h-4 w-4" />{applyLabel || "Apply to GitHub"}</DropdownMenuItem></>}</DropdownMenuContent></DropdownMenu>
       </div>
     </header>
-    <div className="grid min-h-[680px] grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
-      <ScrollArea className="h-[680px] border-b border-border lg:border-b-0 lg:border-r"><div className="mx-auto max-w-4xl space-y-5 p-6 sm:p-10">
+    <div className={cn("grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]", isFullscreen ? "min-h-[calc(100vh-72px)]" : "min-h-[680px]")}>
+      <ScrollArea className={cn(canvasHeight, "border-b border-[hsl(var(--readme-border))] bg-zinc-950/10 lg:border-b-0 lg:border-r")}><div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-10">
         {mode === "design" ? blocks.map((block, index) => <BlockCanvas key={block.id} block={block} selected={selected?.id === block.id} onSelect={() => setSelectedId(block.id)} onDuplicate={() => duplicate(block.id)} onDelete={() => remove(block.id)} onMoveUp={() => move(block.id, -1)} onMoveDown={() => move(block.id, 1)} first={index === 0} last={index === blocks.length - 1} />) : <Textarea value={markdown} onChange={(e) => onChange(e.target.value)} className="min-h-[600px] resize-none border-0 bg-transparent font-mono text-sm leading-7 focus-visible:ring-0" spellCheck={false} />}
-        {mode === "design" && <Button variant="ghost" className="w-full border border-dashed border-border text-muted-foreground" onClick={() => { const block: TextBlock = { id: makeId(), type: "text", markdown: "Write your documentation here." }; setSelectedId(block.id); commit([...blocks, block]) }}><Plus className="mr-2 h-4 w-4" />Add text block</Button>}
+        {mode === "design" && <Button variant="ghost" className="w-full rounded-xl border border-dashed border-[hsl(var(--readme-primary))/40] text-[hsl(var(--readme-primary))] hover:bg-[hsl(var(--readme-primary))/10]" onClick={() => { const block: TextBlock = { id: makeId(), type: "text", markdown: "Write your documentation here." }; setSelectedId(block.id); commit([...blocks, block]) }}><Plus className="mr-2 h-4 w-4" />Add text block</Button>}
       </div></ScrollArea>
-      <ScrollArea className="h-[680px]"><aside className="p-5">{selected ? <SettingsPanel block={selected} onUpdate={updateBlock} textareaRef={markdownRef} onInsert={insertSyntax} /> : null}</aside></ScrollArea>
+      <ScrollArea className={cn(canvasHeight, "bg-zinc-950/30")}><aside className="p-5 sm:p-6">{selected ? <SettingsPanel block={selected} onUpdate={updateBlock} textareaRef={markdownRef} onInsert={insertSyntax} /> : null}</aside></ScrollArea>
     </div>
-  </section>
+  </motion.section>
 }
 
 function BlockCanvas({ block, selected, onSelect, onDuplicate, onDelete, onMoveUp, onMoveDown, first, last }: { block: Block; selected: boolean; onSelect: () => void; onDuplicate: () => void; onDelete: () => void; onMoveUp: () => void; onMoveDown: () => void; first: boolean; last: boolean }) {
-  return <div onClick={onSelect} className={cn("group relative cursor-pointer rounded-xl border border-transparent p-4 transition-colors", selected ? "border-white/80 bg-muted/20" : "hover:border-border") }>
-    <div className={cn("absolute -left-7 top-1/2 hidden -translate-y-1/2 flex-col rounded-md border border-border bg-background p-0.5 shadow-sm group-hover:flex", selected && "flex")}><button disabled={first} onClick={(e) => { e.stopPropagation(); onMoveUp() }} className="px-1 text-muted-foreground disabled:opacity-30">⌃</button><GripVertical className="h-4 w-4 text-muted-foreground" /><button disabled={last} onClick={(e) => { e.stopPropagation(); onMoveDown() }} className="px-1 text-muted-foreground disabled:opacity-30">⌄</button></div>
-    {selected && <div className="absolute -top-10 right-3 flex rounded-lg border border-border bg-background p-1 shadow-xl"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onDuplicate() }} aria-label="Duplicate block"><Copy className="h-3.5 w-3.5" /></Button><Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete() }} aria-label="Delete block"><Trash2 className="h-3.5 w-3.5" /></Button></div>}
+  return <div onClick={onSelect} className={cn("group relative cursor-pointer rounded-2xl border border-transparent bg-zinc-950/25 p-5 transition-all", selected ? "border-[hsl(var(--readme-primary))/70] ring-1 ring-[hsl(var(--readme-primary))/20]" : "hover:border-[hsl(var(--readme-border))] hover:bg-zinc-900/30") }>
+    <div className={cn("absolute -left-7 top-1/2 hidden -translate-y-1/2 flex-col rounded-lg border border-[hsl(var(--readme-border))] bg-zinc-950 p-0.5 shadow-xl group-hover:flex", selected && "flex")}><button disabled={first} onClick={(e) => { e.stopPropagation(); onMoveUp() }} className="px-1 text-muted-foreground disabled:opacity-30">⌃</button><GripVertical className="h-4 w-4 text-[hsl(var(--readme-primary))]" /><button disabled={last} onClick={(e) => { e.stopPropagation(); onMoveDown() }} className="px-1 text-muted-foreground disabled:opacity-30">⌄</button></div>
+    {selected && <div className="absolute -top-10 right-3 flex rounded-lg border border-[hsl(var(--readme-border))] bg-zinc-950 p-1 shadow-xl"><Button variant="ghost" size="icon" className="h-7 w-7 hover:text-[hsl(var(--readme-primary))]" onClick={(e) => { e.stopPropagation(); onDuplicate() }} aria-label="Duplicate block"><Copy className="h-3.5 w-3.5" /></Button><Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete() }} aria-label="Delete block"><Trash2 className="h-3.5 w-3.5" /></Button></div>}
     {block.type === "header" && <HeaderPreview block={block} />}
     {block.type === "text" && <div className="prose prose-invert max-w-none text-sm"><Streamdown>{block.markdown}</Streamdown></div>}
     {block.type === "badges" && <div className="flex flex-wrap justify-center gap-2 py-3">{block.badges.map((badge, index) => badge.src ? <img key={index} src={badge.src} alt={badge.label} className="h-6 max-w-[160px]" /> : <div key={index} className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-muted px-2.5 text-xs font-medium"><span className="text-muted-foreground">{badge.icon}</span>{badge.label}<span className="border-l border-border pl-1.5">{badge.value}</span></div>)}</div>}
@@ -123,10 +135,10 @@ function SettingsPanel({ block, onUpdate, textareaRef, onInsert }: { block: Bloc
   return <><PanelTitle>Text settings</PanelTitle><p className="mb-4 text-sm text-muted-foreground">Edit source markdown. Changes update this block preview immediately.</p><div className="mb-3 flex flex-wrap gap-1">{actions.map(([Icon, before, after], index) => <Button key={index} variant="outline" size="icon" className="h-8 w-8" onClick={() => onInsert(before, after)}><Icon className="h-3.5 w-3.5" /></Button>)}</div><Textarea ref={textareaRef} value={block.markdown} onChange={(e) => onUpdate(block.id, { markdown: e.target.value })} className="min-h-[440px] resize-y font-mono text-xs leading-6" spellCheck={false} /></>
 }
 
-function PanelTitle({ children }: { children: React.ReactNode }) { return <h2 className="mb-5 text-sm font-semibold uppercase tracking-wider text-muted-foreground">{children}</h2> }
+function PanelTitle({ children }: { children: React.ReactNode }) { return <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-[hsl(var(--readme-primary))]">{children}</h2> }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block space-y-2 text-sm font-medium"><span>{label}</span>{children}</label> }
 function HeaderSettings({ block, onUpdate }: { block: HeaderBlock; onUpdate: (id: string, changes: Partial<Block>) => void }) {
   const select = (label: string, key: keyof HeaderBlock, items: string[]) => <Field label={label}><Select value={String(block[key])} onValueChange={(value) => onUpdate(block.id, { [key]: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{items.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></Field>
-  return <div className="space-y-5"><PanelTitle>Header settings</PanelTitle>{select("Style", "style", ["Gradient", "Solid", "Minimal"])}<Field label="Title"><Input value={block.title} onChange={(e) => onUpdate(block.id, { title: e.target.value })} /></Field><Field label="Subtitle"><Textarea value={block.subtitle} onChange={(e) => onUpdate(block.id, { subtitle: e.target.value })} className="min-h-20 resize-y" /></Field>{select("Logo", "logo", ["Auto", "None", "Custom"])}<Button type="button" variant="outline" className="w-full"><Upload className="mr-2 h-4 w-4" />Upload logo</Button><Field label="Background image"><div className="flex gap-2"><Input value={block.background} onChange={(e) => onUpdate(block.id, { background: e.target.value })} placeholder="Unsplash or image URL" /><Button variant="outline" size="icon" aria-label="Randomize background"><Wand2 className="h-4 w-4" /></Button></div></Field><div className="grid grid-cols-2 gap-3">{select("Size", "size", ["Banner", "Hero", "Compact"])}{select("Theme", "theme", ["Default", "Dark", "Light"])}{select("Align", "align", ["Center", "Left", "Right"])}{select("Font", "font", ["Inter", "Geist", "Mono"])}</div><ToggleRow label="Border" checked={block.border} onChange={(border) => onUpdate(block.id, { border })} /><ToggleRow label="Watermark" checked={block.watermark} onChange={(watermark) => onUpdate(block.id, { watermark })} /></div>
+  return <div className="space-y-5"><PanelTitle>Header settings</PanelTitle>{select("Style", "style", ["Gradient", "Solid", "Minimal"])}<Field label="Title"><Input value={block.title} onChange={(e) => onUpdate(block.id, { title: e.target.value })} /></Field><Field label="Subtitle"><Textarea value={block.subtitle} onChange={(e) => onUpdate(block.id, { subtitle: e.target.value })} className="min-h-20 resize-y" /></Field>{select("Logo", "logo", ["Auto", "None", "Custom"])}<Button type="button" variant="outline" className="w-full border-[hsl(var(--readme-primary))/45] text-[hsl(var(--readme-primary))] hover:bg-[hsl(var(--readme-primary))/10]"><Upload className="mr-2 h-4 w-4" />Upload logo</Button><Field label="Background image"><div className="flex gap-2"><Input value={block.background} onChange={(e) => onUpdate(block.id, { background: e.target.value })} placeholder="Unsplash or image URL" /><Button variant="outline" size="icon" className="border-[hsl(var(--readme-primary))/45] text-[hsl(var(--readme-primary))]" aria-label="Randomize background"><Wand2 className="h-4 w-4" /></Button></div></Field><div className="grid grid-cols-2 gap-3">{select("Size", "size", ["Banner", "Hero", "Compact"])}{select("Theme", "theme", ["Default", "Dark", "Light"])}{select("Align", "align", ["Center", "Left", "Right"])}{select("Font", "font", ["Inter", "Geist", "Mono"])}</div><ToggleRow label="Border" checked={block.border} onChange={(border) => onUpdate(block.id, { border })} /><ToggleRow label="Watermark" checked={block.watermark} onChange={(watermark) => onUpdate(block.id, { watermark })} /></div>
 }
 function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) { return <div className="flex items-center justify-between border-t border-border pt-4"><span className="text-sm font-medium">{label}</span><Switch checked={checked} onCheckedChange={onChange} /></div> }

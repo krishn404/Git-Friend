@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Upload, Loader2 } from "lucide-react"
+import { Upload, Loader2, History } from "lucide-react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { ReadmeStudio } from "@/components/readme/readme-studio"
@@ -41,6 +41,7 @@ import { useGitHubAuth } from "@/context/github-auth-context"
 import { RepoPicker, type RepoSelection } from "@/components/repo/repo-picker"
 import { ReadmeHistory } from "@/components/readme/readme-history"
 import { ReadmeSaver } from "@/components/readme/readme-saver"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 export default function GenerateReadme() {
   // Example repositories
@@ -80,6 +81,7 @@ export default function GenerateReadme() {
   const [isApplying, setIsApplying] = useState(false)
   const [applySuccess, setApplySuccess] = useState(false)
   const [showRepoPicker, setShowRepoPicker] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   
   // Use GitHub auth context
   const { isConnected, accessToken, userInfo, connectGitHub, disconnectGitHub } = useGitHubAuth()
@@ -328,6 +330,12 @@ export default function GenerateReadme() {
         {/* Main content */}
         <main className="flex-1 relative pt-24">
           <div className="container max-w-6xl mx-auto py-12">
+            <div className="mb-2 flex justify-end">
+              <Button variant="outline" size="sm" className="gap-2 rounded-lg border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))]" onClick={() => setShowHistory(true)}>
+                <History className="h-4 w-4 text-[hsl(var(--readme-primary))]" />
+                History
+              </Button>
+            </div>
             <div className="flex justify-center mb-2">
               <div className="bg-[hsl(var(--readme-primary))/20] text-[hsl(var(--readme-primary))] px-4 py-1.5 rounded-full text-sm font-medium">
                 DOCUMENTATION ASSISTANT
@@ -449,17 +457,6 @@ export default function GenerateReadme() {
                 </CardContent>
               </Card>
             </motion.div>
-
-            <div className="max-w-3xl mx-auto mb-10 rounded-xl border border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))] p-5">
-              <h2 className="mb-4 text-base font-medium">Your READMEs</h2>
-              <ReadmeHistory
-                onOpen={(_id, markdown, url) => {
-                  setRepoUrl(url)
-                  setGeneratedReadme(markdown)
-                  setRepoData(null)
-                }}
-              />
-            </div>
 
             {/* Example repositories */}
             {!generatedReadme && !isGenerating && (
@@ -641,6 +638,17 @@ export default function GenerateReadme() {
               <RepoPicker onSelect={handleSelectRepo} actionLabel="Select" />
             </DialogContent>
           </Dialog>
+          <Sheet open={showHistory} onOpenChange={setShowHistory}>
+            <SheetContent side="right" className="w-full border-l border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))] p-0 sm:max-w-md">
+              <SheetHeader className="border-b border-[hsl(var(--readme-border))] px-6 py-5">
+                <SheetTitle className="flex items-center gap-2"><History className="h-4 w-4 text-[hsl(var(--readme-primary))]" />Your READMEs</SheetTitle>
+                <SheetDescription>Open and manage your saved README sessions.</SheetDescription>
+              </SheetHeader>
+              <div className="h-[calc(100vh-105px)] p-4">
+                <ReadmeHistory onOpen={(_id, markdown, url) => { setRepoUrl(url); setGeneratedReadme(markdown); setRepoData(null); setShowHistory(false) }} />
+              </div>
+            </SheetContent>
+          </Sheet>
         </main>
       </div>
       
