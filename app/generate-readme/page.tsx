@@ -18,29 +18,22 @@ import {
 import { Upload, Loader2 } from "lucide-react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
-import MarkdownPreview from "@/components/readme/markdown-preview"
+import { ReadmeStudio } from "@/components/readme/readme-studio"
 
 import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   GitBranch,
-  Copy,
   Check,
-  FileText,
-  BookOpen,
   Sparkles,
   Zap,
   Github,
   Code,
   AlertCircle,
-  Download,
 } from "lucide-react"
-import Link from "next/link"
 import { Navbar } from "@/components/ui/navbar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { motion } from "framer-motion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useAuth } from "@/context/auth-context"
@@ -514,119 +507,20 @@ export default function GenerateReadme() {
             )}
 
             {generatedReadme && (
-              <>
-                <motion.div
-                  className="max-w-5xl mx-auto"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Tabs defaultValue="preview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-8 bg-[hsl(var(--readme-card-bg))] border border-[hsl(var(--readme-border))]">
-                      <TabsTrigger
-                        value="preview"
-                        className="flex items-center gap-2 data-[state=active]:bg-[hsl(var(--readme-primary))] data-[state=active]:text-[hsl(var(--readme-primary-foreground))]"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                        Preview
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="markdown"
-                        className="flex items-center gap-2 data-[state=active]:bg-[hsl(var(--readme-primary))] data-[state=active]:text-[hsl(var(--readme-primary-foreground))]"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Markdown
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="preview">
-                      <MarkdownPreview
-                        markdown={generatedReadme}
-                        onNew={() => {
-                          setRepoUrl("")
-                          setGeneratedReadme("")
-                          setRepoData(null)
-                        }}
-                        onDownload={downloadReadme}
-                        onCopy={copyToClipboard}
-                        onRegenerate={() => fetchRepoData(true)}
-                        canRegenerate={!isGenerating && !!repoUrl}
-                        copied={copied}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="markdown">
-                      <Card className="relative shadow-lg border-[hsl(var(--readme-border))] bg-[hsl(var(--readme-card-bg))]">
-                        <CardContent className="pt-6">
-                          <div className="absolute top-4 right-4 flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2 border-[hsl(var(--readme-border))]  hover:bg-[hsl(var(--readme-bg))] bg-transparent"
-                              onClick={() => {
-                                setRepoUrl("")
-                                setGeneratedReadme("")
-                                setRepoData(null)
-                              }}
-                            >
-                              <GitBranch className="h-4 w-4" />
-                              New
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2 border-[hsl(var(--readme-border))] hover:bg-[hsl(var(--readme-bg))] bg-transparent"
-                              onClick={downloadReadme}
-                            >
-                              <Download className="h-4 w-4" />
-                              Download
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2 border-[hsl(var(--readme-border))] hover:bg-[hsl(var(--readme-bg))] bg-transparent"
-                              onClick={copyToClipboard}
-                            >
-                              {copied ? (
-                                <>
-                                  <Check className="h-4 w-4" />
-                                  Copied!
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="h-4 w-4" />
-                                  Copy
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                if (!isConnected) {
-                                  connectGitHub()
-                                  return
-                                }
-                                setShowApplyDialog(true)
-                                fetchBranches()
-                              }}
-                              className="flex items-center gap-2 border-[hsl(var(--readme-border))] hover:bg-[hsl(var(--readme-bg))] bg-transparent"
-                            >
-                              <Upload className="h-4 w-4" />
-                              {isConnected ? "Apply to GitHub" : "Connect GitHub"}
-                            </Button>
-                          </div>
-                          <ScrollArea className="h-[600px] pr-4 mt-8">
-                            <pre className="bg-[hsl(var(--readme-bg))] p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                              <code>{generatedReadme}</code>
-                            </pre>
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </motion.div>
-              </>
+              <motion.div className="mx-auto max-w-7xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                <ReadmeStudio
+                  markdown={generatedReadme}
+                  onChange={setGeneratedReadme}
+                  onDownload={downloadReadme}
+                  onCopy={copyToClipboard}
+                  copied={copied}
+                  onNew={() => { setRepoUrl(""); setGeneratedReadme(""); setRepoData(null) }}
+                  onRegenerate={() => fetchRepoData(true)}
+                  canRegenerate={!isGenerating && !!repoUrl}
+                  onApply={() => { if (!isConnected) { connectGitHub(); return }; setShowApplyDialog(true); fetchBranches() }}
+                  applyLabel={isConnected ? "Apply to GitHub" : "Connect GitHub"}
+                />
+              </motion.div>
             )}
           </div>
 
