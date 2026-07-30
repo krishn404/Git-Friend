@@ -2,11 +2,11 @@
 
 import { Navbar } from '@/components/ui/navbar'
 import { HeroSection } from './hero-section'
+import { ProductShowcase } from './product-showcase'
+import { LogoCloud } from './logo-cloud'
+import { TextSection } from './text-section'
 import { Features } from './features'
-import { ReadmeSection } from './readme-section'
-import { HowItWorksSection } from './how-it-works-section'
-import { FaqSection } from './faq-section'
-import { CtaSection } from './cta-section'
+import { ClosingCta } from './closing-cta'
 import { LandingFooter } from './landing-footer'
 
 export function LandingPage() {
@@ -16,11 +16,11 @@ export function LandingPage() {
 
       <main className="flex-1">
         <HeroSection />
+        <ProductShowcase />
+        <LogoCloud />
+        <TextSection />
         <Features />
-        <ReadmeSection />
-        <HowItWorksSection />
-        <FaqSection />
-        <CtaSection />
+        <ClosingCta />
       </main>
 
       <LandingFooter />
