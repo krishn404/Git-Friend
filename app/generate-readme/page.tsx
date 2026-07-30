@@ -18,7 +18,7 @@ import {
 import { Upload, Loader2, History } from "lucide-react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
-import { ReadmeEditor } from "@/components/readme/readme-Editor"
+import { ReadmeEditor } from "@/components/readme/readme-editor"
 
 import type React from "react"
 import { useState, useEffect } from "react"
