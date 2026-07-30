@@ -1326,3 +1326,26 @@ html {
   margin-left: auto;
   margin-right: auto;
 }
+
+/* Landing page: quiet graph-paper depth inspired by developer tooling. */
+.landing-grid {
+  background-image:
+    linear-gradient(to right, rgba(24, 24, 27, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(24, 24, 27, 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.dark .landing-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+}
+
+.landing-dots {
+  background-image: radial-gradient(rgba(24, 24, 27, 0.16) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+.dark .landing-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px);
+}

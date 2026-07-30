@@ -18,7 +18,7 @@ import {
 import { Upload, Loader2, History } from "lucide-react"
 
 import { ProtectedRoute } from "@/components/auth/protected-route"
-import { ReadmeStudio } from "@/components/readme/readme-studio"
+import { ReadmeEditor } from "@/components/readme/readme-Editor"
 
 import type React from "react"
 import { useState, useEffect } from "react"
@@ -505,7 +505,7 @@ export default function GenerateReadme() {
 
             {generatedReadme && (
               <motion.div className="mx-auto max-w-7xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <ReadmeStudio
+                <ReadmeEditor
                   markdown={generatedReadme}
                   onChange={setGeneratedReadme}
                   onDownload={downloadReadme}

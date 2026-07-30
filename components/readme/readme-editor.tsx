@@ -54,7 +54,7 @@ type Props = {
   onNew: () => void; onRegenerate?: () => void; canRegenerate?: boolean; onApply?: () => void; applyLabel?: string
 }
 
-export function ReadmeStudio({ markdown, onChange, onDownload, onCopy, copied, onNew, onRegenerate, canRegenerate, onApply, applyLabel }: Props) {
+export function ReadmeEditor({ markdown, onChange, onDownload, onCopy, copied, onNew, onRegenerate, canRegenerate, onApply, applyLabel }: Props) {
   const [mode, setMode] = useState<"design" | "markdown">("design")
   const [blocks, setBlocks] = useState<Block[]>(() => markdownToBlocks(markdown))
   const [selectedId, setSelectedId] = useState(blocks[0]?.id)
