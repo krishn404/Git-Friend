@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server"
-import { Groq } from "groq-sdk"
 import { scanRepository, type ScannedFile, type RepoAnalysis } from "@/lib/github"
+import { getLLMClient, resolveModel } from "@/lib/llm"
 
 const repoContextCache = new Map<string, { value: string; expiresAt: number }>()
 const REPO_CONTEXT_TTL_MS = 5 * 60 * 1000
 
-// Initialize Groq
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+// Groq by default; a LiteLLM proxy when LITELLM_BASE_URL is set (see lib/llm.ts).
+const groq = getLLMClient()
 
 export async function POST(req: Request) {
   try {
@@ -80,7 +78,7 @@ ${repoContextBlock}`,
           content: m.content || "",
         })),
       ],
-      model: process.env.GROQ_CHAT_MODEL ?? "llama-3.1-8b-instant",
+      model: resolveModel(process.env.GROQ_CHAT_MODEL ?? "llama-3.1-8b-instant"),
       temperature: 0.7,
       max_completion_tokens: 1600,
       top_p: 1,

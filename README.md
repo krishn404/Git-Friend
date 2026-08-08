@@ -67,7 +67,7 @@ We're constantly working to improve Git-Friend. Here are some features we're pla
 - **Programming Languages**: TypeScript, CSS, JavaScript
 - **Frameworks/Libraries**: React, Next.js, Octokit, Radix UI, Firebase, TailwindCSS
 - **Development Tools**: Node, npm, TypeScript
-- **AI Integration**: Groq
+- **AI Integration**: Groq (or any provider via an optional LiteLLM proxy)
 
 ## Getting Started 🛠️
 
@@ -129,6 +129,22 @@ GITHUB_ACCESS_TOKEN=your_github_access_token
 GROQ_API_KEY=your_groq_api_key
 UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
 UPSTASH_REDIS_REST_URL=your_upstash_redis_url
+```
+</details>
+
+<details>
+<summary> 🌐 Optional: LiteLLM gateway (100+ providers)</summary>
+
+By default Git-Friend uses Groq. Set `LITELLM_BASE_URL` to route every LLM call
+through a [LiteLLM proxy](https://docs.litellm.ai/docs/simple_proxy) instead —
+one OpenAI-compatible endpoint that reaches OpenAI, Anthropic, Gemini, Bedrock,
+Azure, self-hosted models, and more, with keys/spend-limits/fallbacks centralised
+in the proxy. Leave these blank to keep using Groq.
+
+```env
+LITELLM_BASE_URL=http://localhost:4000/v1   # your LiteLLM proxy endpoint
+LITELLM_MODEL=gpt-4o-mini                    # a model alias from your proxy config
+LITELLM_API_KEY=your_litellm_virtual_key     # optional; falls back to GROQ_API_KEY
 ```
 </details>
 

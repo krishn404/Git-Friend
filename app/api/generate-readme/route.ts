@@ -1,9 +1,9 @@
 import { Octokit } from "@octokit/rest"
-import { Groq } from "groq-sdk"
 import { type NextRequest, NextResponse } from "next/server"
 import { redis, CACHE_KEYS, CACHE_TTL, type ReadmeGenerationStatus } from "@/lib/redis"
 import { scanRepository, type ScannedFile, type RepoAnalysis } from "@/lib/github"
 import { withTimeout } from "@/lib/timeout-utils"
+import { getLLMClient, resolveModel } from "@/lib/llm"
 
 // Define types and functions inline to avoid import issues
 type ProjectKind = "web" | "python" | "java" | "native" | "unknown"
@@ -502,10 +502,8 @@ ${customInstructions ? `\n\nUser Custom Instructions:\n${customInstructions}` : 
 }
 
 
-// Initialize Groq (singleton ok in route scope)
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+// Groq by default; a LiteLLM proxy when LITELLM_BASE_URL is set (see lib/llm.ts).
+const groq = getLLMClient()
 
 // Keep a single Octokit instance for lightweight calls still used here
 const octokit = new Octokit({
@@ -719,7 +717,7 @@ export async function POST(req: NextRequest) {
                   { role: "system", content: systemPrompt },
                   { role: "user", content: "Generate the README.md now. Begin with name, description, and tech stack." },
                 ],
-                model: "openai/gpt-oss-120b",
+                model: resolveModel("openai/gpt-oss-120b"),
                 temperature: 0.7,
                 max_completion_tokens: 2000,
                 top_p: 1,
@@ -832,7 +830,7 @@ async function generateReadmeInBackground(repoUrl: string, customInstructions?: 
               { role: "system", content: systemPrompt },
               { role: "user", content: "Generate the README.md now. Begin with name, description, and tech stack." },
             ],
-            model: "openai/gpt-oss-120b",
+            model: resolveModel("openai/gpt-oss-120b"),
             temperature: 0.7,
             max_completion_tokens: 2000, // Reduced for faster generation
             top_p: 1,

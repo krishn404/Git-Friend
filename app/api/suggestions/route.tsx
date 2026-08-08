@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { Groq } from "groq-sdk";
+import { getLLMClient, resolveModel } from "@/lib/llm";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+// Groq by default; a LiteLLM proxy when LITELLM_BASE_URL is set (see lib/llm.ts).
+const groq = getLLMClient();
 
 export async function GET() {
   try {
@@ -17,7 +18,7 @@ export async function GET() {
             'Generate four timely, diverse questions a developer could ask about Git or GitHub. Return exactly this JSON object shape: {"suggestions":["question one","question two","question three","question four"]}.',
         },
       ],
-      model: process.env.GROQ_SUGGESTIONS_MODEL ?? "llama-3.1-8b-instant",
+      model: resolveModel(process.env.GROQ_SUGGESTIONS_MODEL ?? "llama-3.1-8b-instant"),
       temperature: 0.9,
       max_completion_tokens: 120,
       stream: false,
